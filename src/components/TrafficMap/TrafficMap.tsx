@@ -85,15 +85,7 @@ export function TrafficMap() {
           </div>
         )}
 
-        {!selectedIntersection && (
-          <aside className={styles.guideCard}>
-            <span className={styles.guideEyebrow}>{guide.eyebrow}</span>
-            <h1>{guide.title}</h1>
-            <p>{guide.description}</p>
-          </aside>
-        )}
-
-        {selectedIntersection && (
+        {selectedIntersection ? (
           <SignalCard
             intersection={selectedIntersection}
             signal={signal}
@@ -103,6 +95,12 @@ export function TrafficMap() {
             onRemainingTimeEnd={handleSignalRemainingTimeEnd}
             onClose={handleCloseSignal}
           />
+        ) : (
+          <aside className={styles.guideCard}>
+            <span className={styles.guideEyebrow}>{guide.eyebrow}</span>
+            <h1>{guide.title}</h1>
+            <p>{guide.description}</p>
+          </aside>
         )}
 
         <div className={styles.locationControl}>

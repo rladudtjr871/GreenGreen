@@ -10,7 +10,7 @@
 
 # local environment files
 .env*
-!.env.example
+.env.example
 
 # logs
 *.log

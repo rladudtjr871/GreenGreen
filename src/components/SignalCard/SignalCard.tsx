@@ -112,10 +112,13 @@ export function SignalCard({
         </>
       )}
 
-      <p className={styles.safetyNotice}>
-        제공되는 신호정보는 통신상태에 따라 실제 신호와 차이가 발생할 수
-        있습니다. 횡단 시 반드시 실제 신호등을 확인하세요.
-      </p>
+      <div className={styles.safetyNotice}>
+        <p>
+          제공되는 신호정보는 통신상태에 따라 실제 신호와 차이가 발생할 수
+          있습니다.
+        </p>
+        <p>횡단 시 반드시 실제 신호등을 확인하세요.</p>
+      </div>
     </aside>
   );
 }
