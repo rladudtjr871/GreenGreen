@@ -1,0 +1,2 @@
+export const SIGNAL_POLL_INTERVAL_MS = 10_000;
+export const SIGNAL_STALE_AFTER_MS = 30_000;
