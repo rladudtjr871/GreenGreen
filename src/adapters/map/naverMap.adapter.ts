@@ -3,7 +3,7 @@ import {
   DEFAULT_MAP_ZOOM,
 } from "@/constants/map";
 import type { Intersection } from "@/types/intersection";
-import type { MapCoordinate, MapViewport } from "@/types/map";
+import type { MapCoordinate, MapRegion, MapViewport } from "@/types/map";
 import type {
   PedestrianSignal,
   PedestrianSignalState,
@@ -62,6 +62,22 @@ type NaverLatLngBounds = {
 };
 
 type NaverEventListener = object;
+
+type NaverReverseGeocodeResponse = {
+  v2?: {
+    results?: Array<{
+      name?: string;
+      code?: {
+        id?: string;
+      };
+      region?: {
+        area1?: {
+          name?: string;
+        };
+      };
+    }>;
+  };
+};
 
 type NaverMap = {
   /** 지도 중심을 지정된 NAVER 좌표로 이동한다. */
@@ -139,6 +155,25 @@ type NaverMapsSdk = {
     /** 앞서 등록한 이벤트 리스너를 해제한다. */
     removeListener: (listener: NaverEventListener) => void;
   };
+  /** Geocoder 서브모듈이 제공하는 좌표 기반 주소 검색 API다. */
+  Service?: {
+    Status: {
+      OK: number;
+    };
+    OrderType: {
+      LEGAL_CODE: string;
+    };
+    reverseGeocode: (
+      options: {
+        coords: NaverLatLng;
+        orders: string;
+      },
+      callback: (
+        status: number,
+        response?: NaverReverseGeocodeResponse,
+      ) => void,
+    ) => void;
+  };
 };
 
 type NaverWindow = Window &
@@ -166,6 +201,8 @@ export type NaverMapController = {
     selectedSignal: PedestrianSignal | null,
     onSelect: (intersection: Intersection) => void,
   ) => void;
+  /** 좌표를 법정동 기준 광역 지역 정보로 변환한다. */
+  resolveRegion: (coordinate: MapCoordinate) => Promise<MapRegion | null>;
   /** 어댑터가 만든 이벤트, 마커, 지도 인스턴스를 정리한다. */
   destroy: () => void;
 };
@@ -262,7 +299,7 @@ export function loadNaverMapsSdk(clientId: string): Promise<NaverMapsSdk> {
     // Client ID는 URL 구성 요소이므로 인코딩해 쿼리 문자열을 보존한다.
     const script = document.createElement("script");
     script.id = NAVER_MAP_SCRIPT_ID;
-    script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(clientId)}`;
+    script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(clientId)}&submodules=geocoder`;
     script.async = true;
     script.addEventListener("load", handleLoad, { once: true });
     script.addEventListener("error", handleError, { once: true });
@@ -428,6 +465,53 @@ export function createNaverMap(
         });
 
         return { marker, clickListener };
+      });
+    },
+    resolveRegion(coordinate) {
+      return new Promise((resolve, reject) => {
+        const service = sdk.Service;
+
+        // 1. Geocoder 서브모듈 준비 여부를 확인한다.
+        // 지도 표시 자체는 유지하되 지역 판별만 실패로 처리할 수 있도록 별도 오류로 구분한다.
+        if (!service) {
+          reject(new Error("NAVER Reverse Geocoding을 사용할 수 없습니다."));
+          return;
+        }
+
+        // 2. 프로젝트 좌표를 NAVER 좌표로 변환해 법정동 결과만 요청한다.
+        // 도로명·행정동 결과를 함께 받지 않아 응답에서 사용할 코드가 모호해지는 일을 막는다.
+        service.reverseGeocode(
+          {
+            coords: new sdk.LatLng(
+              coordinate.latitude,
+              coordinate.longitude,
+            ),
+            orders: service.OrderType.LEGAL_CODE,
+          },
+          (status, response) => {
+            if (status !== service.Status.OK) {
+              reject(new Error("현재 지도 지역을 확인할 수 없습니다."));
+              return;
+            }
+
+            // 3. 법정동 결과에서 서비스 지역 판별에 필요한 코드와 시·도명만 추출한다.
+            // 결과가 없는 해상 좌표 등은 오류가 아니라 판별 불가 상태로 상위 로직에 전달한다.
+            const legalRegion = response?.v2?.results?.find(
+              ({ name }) => name === "legalcode",
+            );
+            const legalCode = legalRegion?.code?.id?.trim();
+
+            if (!legalCode) {
+              resolve(null);
+              return;
+            }
+
+            resolve({
+              legalCode,
+              area1Name: legalRegion?.region?.area1?.name?.trim() ?? "",
+            });
+          },
+        );
       });
     },
     destroy() {

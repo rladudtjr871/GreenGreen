@@ -22,3 +22,10 @@ export type MapViewport = {
   /** 현재 NAVER 지도 확대 단계다. 값이 클수록 더 확대된 화면이다. */
   zoom: number;
 };
+
+export type MapRegion = {
+  /** 좌표에 대응하는 10자리 법정동 코드다. */
+  legalCode: string;
+  /** 법정동 주소의 광역 시·도 이름이다. */
+  area1Name: string;
+};
