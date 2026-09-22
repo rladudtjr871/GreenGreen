@@ -168,9 +168,16 @@ NEXT_PUBLIC_NAVER_MAP_CLIENT_ID=your_naver_maps_client_id
 
 # 서울 T-Data Open API 인증키 — 서버에서만 사용
 TDATA_API_KEY=your_tdata_api_key
+
+# 선택 사항: latest(기본값) 또는 legacy
+TDATA_INTERSECTION_SOURCE=latest
 ```
 
 > `.env.local`은 Git에 커밋하지 않습니다. NAVER Maps 애플리케이션에는 개발 및 배포 환경의 Web 서비스 URL을 등록해야 합니다.
+
+교차로 위치는 기본적으로 최신 스냅샷을 사용합니다. 이전 998개 스냅샷으로
+되돌려야 하면 `TDATA_INTERSECTION_SOURCE=legacy`로 변경한 뒤 서버를 다시
+시작합니다.
 
 ### 3. 개발 서버 실행
 

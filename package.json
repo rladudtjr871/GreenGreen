@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "data:intersections": "node scripts/generate-intersections-snapshot.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.103.1",

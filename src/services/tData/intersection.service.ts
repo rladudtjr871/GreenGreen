@@ -1,9 +1,9 @@
-import intersectionRecords from "@/data/intersections.json";
 import { mapTDataIntersection } from "@/services/tData/intersection.mapper";
+import { getIntersectionSnapshot } from "@/services/tData/intersection.source";
 import type { Intersection } from "@/types/intersection";
 import type { MapBounds } from "@/types/map";
 
-const intersections: Intersection[] = intersectionRecords
+const intersections: Intersection[] = getIntersectionSnapshot()
   // 1. 서버 시작 시 공식 스냅샷을 내부 모델로 한 번 변환한다.
   // 외부 API의 장시간 반복 호출 제한을 피하면서 매 요청의 변환 비용도 줄인다.
   .map((record) => mapTDataIntersection(record))
