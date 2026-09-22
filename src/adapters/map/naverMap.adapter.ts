@@ -22,21 +22,21 @@ const SIGNAL_GROUP_CROSSWALK_LAYOUTS: Record<
   CrosswalkMarkerLayout
 > = {
   // 신호 그룹 방향을 차량 진행 우측에 있는 실제 횡단보도 위치로 회전한다.
-  north: { style: "top:33px;left:2px;width:8px;height:26px" },
+  north: { style: "top:35px;left:2px;width:6px;height:22px" },
   northEast: {
-    style: "top:12px;left:10px;width:26px;height:8px;transform:rotate(-45deg)",
+    style: "top:13px;left:12px;width:22px;height:6px;transform:rotate(-45deg)",
   },
-  east: { style: "top:2px;left:33px;width:26px;height:8px" },
+  east: { style: "top:2px;left:35px;width:22px;height:6px" },
   southEast: {
-    style: "top:12px;right:10px;width:26px;height:8px;transform:rotate(45deg)",
+    style: "top:13px;right:12px;width:22px;height:6px;transform:rotate(45deg)",
   },
-  south: { style: "top:33px;right:2px;width:8px;height:26px" },
+  south: { style: "top:35px;right:2px;width:6px;height:22px" },
   southWest: {
-    style: "right:10px;bottom:12px;width:26px;height:8px;transform:rotate(-45deg)",
+    style: "right:12px;bottom:13px;width:22px;height:6px;transform:rotate(-45deg)",
   },
-  west: { style: "bottom:2px;left:33px;width:26px;height:8px" },
+  west: { style: "bottom:2px;left:35px;width:22px;height:6px" },
   northWest: {
-    style: "bottom:12px;left:10px;width:26px;height:8px;transform:rotate(45deg)",
+    style: "bottom:13px;left:12px;width:22px;height:6px;transform:rotate(45deg)",
   },
 };
 
