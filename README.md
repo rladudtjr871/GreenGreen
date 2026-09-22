@@ -6,23 +6,10 @@ NAVER Maps Dynamic Map과 서울교통빅데이터플랫폼(T-Data)의 C-ITS 데
 
 ## 시작하기
 
-1. NAVER Cloud Platform에서 Maps 애플리케이션을 만들고 **Dynamic Map**을 선택합니다.
-2. Web 서비스 URL에 로컬 주소(`http://localhost:3000`)를 등록합니다.
-3. 서울 T-Data에서 실시간 신호정보 API 키를 발급받습니다.
-4. `.env.example`을 `.env.local`로 복사하고 값을 입력합니다.
-5. 아래 명령을 실행합니다.
-
 ```bash
 pnpm install
 pnpm dev
 ```
-
-```env
-NEXT_PUBLIC_NAVER_MAP_CLIENT_ID=your_naver_maps_client_id
-TDATA_API_KEY=your_tdata_api_key
-```
-
-`TDATA_API_KEY`는 Next.js Route Handler에서만 사용하며 브라우저에 노출하지 않습니다.
 
 ## 신호정보 조회 방식
 
