@@ -43,7 +43,7 @@ const SIGNAL_GROUP_CROSSWALK_LAYOUTS: Record<
 const SIGNAL_MARKER_STATE_COLORS: Record<PedestrianSignalState, string> = {
   walk: "#05bb55",
   clearance: "#f0a51b",
-  stop: "#6f7d75",
+  stop: "#ed5e5e",
   unknown: "#b8c1bc",
 };
 

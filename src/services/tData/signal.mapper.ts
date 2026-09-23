@@ -3,7 +3,10 @@ import type {
   PedestrianSignalState,
   SignalDirection,
 } from "@/types/signal";
-import { SIGNAL_STALE_AFTER_MS } from "@/constants/signal";
+import {
+  SIGNAL_REMAINING_SAFETY_OFFSET_SECONDS,
+  SIGNAL_STALE_AFTER_MS,
+} from "@/constants/signal";
 
 const DIRECTION_FIELDS: Array<{
   direction: SignalDirection;
@@ -60,9 +63,12 @@ function parseRemainingSeconds(value: unknown): number | null {
     return null;
   }
 
-  // 2. 유효한 T-Data의 0.1초 단위를 초로 올림한다.
-  // 소수 단위를 버려 실제보다 시간이 짧게 표시되는 일을 방지한다.
-  return Math.ceil(deciseconds / 10);
+  // 2. 유효한 T-Data의 0.1초 단위를 초로 올린 뒤 현장에서 확인한 지연만큼 줄인다.
+  // 실제 신호보다 긴 잔여시간을 안내하지 않도록 보수적으로 보정하고 음수는 0초로 제한한다.
+  return Math.max(
+    0,
+    Math.ceil(deciseconds / 10) - SIGNAL_REMAINING_SAFETY_OFFSET_SECONDS,
+  );
 }
 
 function parseObservedAt(record: Record<string, unknown>): string | null {

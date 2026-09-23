@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-import { SIGNAL_STALE_AFTER_MS } from "@/constants/signal";
+import {
+  SIGNAL_STALE_AFTER_MS,
+  SIGNAL_ZERO_RETRY_DELAY_MS,
+} from "@/constants/signal";
 import type {
   PedestrianSignal,
   PedestrianSignalState,
@@ -31,6 +34,7 @@ export function useSignalCard(
   onRemainingTimeEnd: () => void,
 ) {
   const [now, setNow] = useState(() => Date.now());
+  const isZeroRetryingRef = useRef(false);
 
   useEffect(() => {
     if (!signal) {
@@ -45,36 +49,47 @@ export function useSignalCard(
 
   useEffect(() => {
     if (!signal || signal.isStale) {
+      isZeroRetryingRef.current = false;
       return;
     }
 
-    // 1. 유효한 양수 잔여시간 중 가장 짧은 값을 찾는다.
-    // 여러 방향이 있어도 가장 먼저 0초가 되는 순간에 요청 한 번만 보내기 위함이다.
-    const positiveRemainingSeconds = signal.directions
+    // 1. 유효한 잔여시간 중 가장 짧은 값을 찾는다.
+    // 여러 방향이 있어도 가장 먼저 0초가 된 신호를 기준으로 요청 한 번만 보내기 위함이다.
+    const validRemainingSeconds = signal.directions
       .map(({ remainingSeconds }) => remainingSeconds)
       .filter(
         (remainingSeconds): remainingSeconds is number =>
-          remainingSeconds !== null && remainingSeconds > 0,
+          remainingSeconds !== null && remainingSeconds >= 0,
       );
 
-    if (positiveRemainingSeconds.length === 0) {
+    if (validRemainingSeconds.length === 0) {
+      isZeroRetryingRef.current = false;
       return;
     }
 
-    // 2. 응답 수신 뒤 이미 흐른 시간을 제외해 실제 0초 도달 시점에 타이머를 맞춘다.
-    // 새 폴링 응답이 오면 기존 타이머를 정리하고 최신 remainingSeconds로 다시 예약한다.
+    // 2. 보정값이 1초 미만이면 최초에는 즉시 확인하고, 같은 결과가 이어지면 2초 뒤 재확인한다.
+    // 0초 응답이 갱신되기 전까지 즉시 요청이 반복되는 것을 막으면서 신호 전환은 빠르게 감지한다.
     const receivedTime = new Date(signal.receivedAt).getTime();
-    const shortestRemainingSeconds = Math.min(...positiveRemainingSeconds);
+    const shortestRemainingSeconds = Math.min(...validRemainingSeconds);
 
     if (!Number.isFinite(receivedTime)) {
       return;
     }
 
     const elapsedMilliseconds = Math.max(0, Date.now() - receivedTime);
-    const refetchDelay = Math.max(
-      0,
-      shortestRemainingSeconds * 1_000 - elapsedMilliseconds,
-    );
+    const isBelowOneSecond = shortestRemainingSeconds < 1;
+    const refetchDelay = isBelowOneSecond
+      ? isZeroRetryingRef.current
+        ? SIGNAL_ZERO_RETRY_DELAY_MS
+        : 0
+      : Math.max(
+          0,
+          shortestRemainingSeconds * 1_000 - elapsedMilliseconds,
+        );
+
+    if (!isBelowOneSecond) {
+      isZeroRetryingRef.current = false;
+    }
 
     const timer = window.setTimeout(() => {
       const observedTime = new Date(signal.observedAt).getTime();
@@ -85,6 +100,7 @@ export function useSignalCard(
       // 3. 타이머가 끝난 시점에도 데이터가 신선할 때만 즉시 재조회한다.
       // 폴링 실패로 오래된 화면이 남은 경우 추가 호출이 반복되는 것을 방지한다.
       if (isStillFresh) {
+        isZeroRetryingRef.current = true;
         onRemainingTimeEnd();
       }
     }, refetchDelay);

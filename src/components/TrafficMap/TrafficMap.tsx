@@ -96,52 +96,59 @@ export function TrafficMap() {
             onClose={handleCloseSignal}
           />
         ) : (
-          <aside className={styles.guideCard}>
-            <span className={styles.guideEyebrow}>{guide.eyebrow}</span>
-            <h1>{guide.title}</h1>
-            <p>{guide.description}</p>
-          </aside>
+          <div className={styles.mapControls}>
+            <aside className={styles.guideCard}>
+              <span className={styles.guideEyebrow}>{guide.eyebrow}</span>
+              <h1>{guide.title}</h1>
+              <p>{guide.description}</p>
+            </aside>
+
+            <div className={styles.locationPanel}>
+              <div className={styles.locationControl}>
+                {locationStatus === "error" && (
+                  <p
+                    className={`${styles.locationMessage} ${
+                      locationStatus === "error" ? styles.locationError : ""
+                    }`}
+                    role="status"
+                  >
+                    {locationMessage}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  className={`${styles.locationButton} ${
+                    isCurrentLocationActive ? styles.locationButtonActive : ""
+                  }`}
+                  onClick={handleCurrentLocation}
+                  disabled={isCurrentLocationDisabled}
+                  aria-label="현재 위치로 이동"
+                >
+                  {locationStatus === "locating" ? (
+                    <span
+                      className={styles.buttonSpinner}
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <svg
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                      className={styles.locationIcon}
+                    >
+                      <circle cx="12" cy="12" r="4" />
+                      <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+                      <circle cx="12" cy="12" r="8" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+
+              <p className={styles.locationHint}>
+                {locationStatus === "locating" ? "이동 중" : "현재 위치"}
+              </p>
+            </div>
+          </div>
         )}
-
-        <div className={styles.locationControl}>
-          {locationStatus === "error" && (
-            <p
-              className={`${styles.locationMessage} ${
-                locationStatus === "error" ? styles.locationError : ""
-              }`}
-              role="status"
-            >
-              {locationMessage}
-            </p>
-          )}
-          <button
-            type="button"
-            className={`${styles.locationButton} ${
-              isCurrentLocationActive ? styles.locationButtonActive : ""
-            }`}
-            onClick={handleCurrentLocation}
-            disabled={isCurrentLocationDisabled}
-            aria-label="현재 위치로 이동"
-          >
-            {locationStatus === "locating" ? (
-              <span className={styles.buttonSpinner} aria-hidden="true" />
-            ) : (
-              <svg
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-                className={styles.locationIcon}
-              >
-                <circle cx="12" cy="12" r="4" />
-                <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
-                <circle cx="12" cy="12" r="8" />
-              </svg>
-            )}
-          </button>
-        </div>
-
-        <p className={styles.locationHint}>
-          {locationStatus === "locating" ? "이동 중" : "현재 위치"}
-        </p>
       </section>
     </main>
   );

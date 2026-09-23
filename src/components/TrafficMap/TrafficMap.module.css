@@ -161,11 +161,20 @@
   font-weight: 800;
 }
 
-.guideCard {
+.mapControls {
   position: absolute;
   z-index: 10;
+  right: 20px;
   bottom: 20px;
   left: 20px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  pointer-events: none;
+}
+
+.guideCard {
   width: min(390px, calc(100% - 120px));
   padding: 22px 24px;
   border: 1px solid rgba(255, 255, 255, 0.9);
@@ -173,6 +182,7 @@
   background: rgba(255, 255, 255, 0.95);
   box-shadow: 0 12px 34px rgba(20, 49, 34, 0.15);
   backdrop-filter: blur(14px);
+  pointer-events: auto;
 }
 
 .guideEyebrow {
@@ -198,11 +208,17 @@
   word-break: keep-all;
 }
 
+.locationPanel {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 8px;
+  pointer-events: auto;
+}
+
 .locationControl {
-  position: absolute;
-  z-index: 11;
-  right: 24px;
-  bottom: 54px;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -290,10 +306,6 @@
 }
 
 .locationHint {
-  position: absolute;
-  z-index: 10;
-  right: 24px;
-  bottom: 28px;
   width: 54px;
   color: #4e6257;
   font-size: 11px;
@@ -349,11 +361,9 @@
   }
 
   .guideCard {
-    right: 12px;
-    bottom: 16px;
-    left: 12px;
-    width: auto;
-    padding: 17px 76px 17px 18px;
+    order: 2;
+    width: 100%;
+    padding: 17px 18px;
     border-radius: 19px;
   }
 
@@ -365,9 +375,19 @@
     display: none;
   }
 
-  .locationControl {
-    right: 22px;
-    bottom: 41px;
+  .mapControls {
+    right: 12px;
+    bottom: 16px;
+    left: 12px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .locationPanel {
+    order: 1;
+    align-self: flex-end;
+    padding-bottom: 0;
   }
 
   .locationMessage {

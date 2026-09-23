@@ -14,10 +14,7 @@ import {
   SEOUL_CITY_HALL_COORDINATE,
   SEOUL_LEGAL_CODE_PREFIX,
 } from "@/constants/map";
-import {
-  SIGNAL_POLL_INTERVAL_MS,
-  SIGNAL_STALE_AFTER_MS,
-} from "@/constants/signal";
+import { SIGNAL_STALE_AFTER_MS } from "@/constants/signal";
 import {
   fetchIntersections,
   fetchPedestrianSignal,
@@ -269,7 +266,7 @@ export function useTrafficMap() {
 
   const signalQuery = useQuery({
     // 3. 사용자가 선택한 교차로만 실시간 신호를 조회한다.
-    // 전체 마커를 동시에 폴링하지 않아 외부 API 호출량을 제한한다.
+    // 정기 폴링 없이 잔여시간이 끝날 때만 재조회해 외부 API 호출량을 제한한다.
     queryKey: ["signal", activeSelectedIntersection?.intersectionId],
     queryFn: () =>
       activeSelectedIntersection
@@ -277,12 +274,10 @@ export function useTrafficMap() {
         : Promise.reject(new Error("교차로가 선택되지 않았습니다.")),
     enabled: activeSelectedIntersection !== null,
     staleTime: 3_000,
-    refetchInterval: SIGNAL_POLL_INTERVAL_MS,
-    refetchIntervalInBackground: false,
   });
   const refetchSignal = signalQuery.refetch;
   const handleSignalRemainingTimeEnd = useCallback(() => {
-    // 0초 도달과 정기 폴링이 겹치면 진행 중인 요청을 취소하지 않고 기존 요청을 공유한다.
+    // 0초 도달 후 재시도가 겹치면 진행 중인 요청을 취소하지 않고 기존 요청을 공유한다.
     void refetchSignal({ cancelRefetch: false });
   }, [refetchSignal]);
 
