@@ -276,7 +276,7 @@ export function useTrafficMap() {
     staleTime: 3_000,
   });
   const refetchSignal = signalQuery.refetch;
-  const handleSignalRemainingTimeEnd = useCallback(() => {
+  const handleRefreshSignal = useCallback(() => {
     // 0초 도달 후 재시도가 겹치면 진행 중인 요청을 취소하지 않고 기존 요청을 공유한다.
     void refetchSignal({ cancelRefetch: false });
   }, [refetchSignal]);
@@ -472,7 +472,7 @@ export function useTrafficMap() {
     isSignalLoading: signalQuery.isLoading,
     isSignalRefreshing: signalQuery.isFetching && !signalQuery.isLoading,
     signalErrorMessage,
-    handleSignalRemainingTimeEnd,
+    handleRefreshSignal,
     handleCloseSignal: () => setSelectedIntersection(null),
   };
 }

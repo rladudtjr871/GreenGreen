@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
+  SIGNAL_MANUAL_REFRESH_COOLDOWN_MS,
   SIGNAL_STALE_AFTER_MS,
   SIGNAL_ZERO_RETRY_DELAY_MS,
 } from "@/constants/signal";
@@ -32,9 +33,39 @@ function formatRemainingTime(totalSeconds: number): string {
 export function useSignalCard(
   signal: PedestrianSignal | undefined,
   onRemainingTimeEnd: () => void,
+  onRefresh: () => void,
 ) {
   const [now, setNow] = useState(() => Date.now());
+  const [isRefreshCoolingDown, setIsRefreshCoolingDown] = useState(false);
   const isZeroRetryingRef = useRef(false);
+  const refreshCooldownTimerRef = useRef<number | null>(null);
+
+  const handleRefresh = () => {
+    // 1. 상태 반영 전 연속 클릭도 막을 수 있도록 타이머 참조를 먼저 잠근다.
+    // 자동 재조회와는 별개로 사용자의 수동 호출만 5초에 한 번 허용하기 위한 처리다.
+    if (refreshCooldownTimerRef.current !== null) {
+      return;
+    }
+
+    setIsRefreshCoolingDown(true);
+    onRefresh();
+
+    // 2. 쿨다운이 끝나면 타이머 참조와 버튼 상태를 함께 복원한다.
+    // 컴포넌트가 유지되는 동안 요청 성공 여부와 무관하게 동일한 제한 시간을 적용한다.
+    refreshCooldownTimerRef.current = window.setTimeout(() => {
+      refreshCooldownTimerRef.current = null;
+      setIsRefreshCoolingDown(false);
+    }, SIGNAL_MANUAL_REFRESH_COOLDOWN_MS);
+  };
+
+  useEffect(
+    () => () => {
+      if (refreshCooldownTimerRef.current !== null) {
+        window.clearTimeout(refreshCooldownTimerRef.current);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!signal) {
@@ -164,5 +195,11 @@ export function useSignalCard(
       }).format(new Date(signal.observedAt))
     : "";
 
-  return { directions, isStale, updatedTime };
+  return {
+    directions,
+    isStale,
+    updatedTime,
+    handleRefresh,
+    isRefreshCoolingDown,
+  };
 }

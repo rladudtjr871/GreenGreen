@@ -21,7 +21,7 @@ export function TrafficMap() {
     isSignalLoading,
     isSignalRefreshing,
     signalErrorMessage,
-    handleSignalRemainingTimeEnd,
+    handleRefreshSignal,
     handleCloseSignal,
   } = useTrafficMap();
 
@@ -92,7 +92,8 @@ export function TrafficMap() {
             isLoading={isSignalLoading}
             isRefreshing={isSignalRefreshing}
             errorMessage={signalErrorMessage}
-            onRemainingTimeEnd={handleSignalRemainingTimeEnd}
+            onRefresh={handleRefreshSignal}
+            onRemainingTimeEnd={handleRefreshSignal}
             onClose={handleCloseSignal}
           />
         ) : (

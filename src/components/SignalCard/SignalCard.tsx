@@ -15,6 +15,8 @@ type SignalCardProps = {
   isRefreshing: boolean;
   /** 신호 요청 실패 시 표시할 사용자용 메시지이며 오류가 없으면 빈 문자열이다. */
   errorMessage: string;
+  /** 사용자가 현재 교차로의 최신 신호를 직접 다시 요청하는 콜백이다. */
+  onRefresh: () => void;
   /** 사용자가 상세 카드를 닫을 때 선택 상태를 해제하는 콜백이다. */
   onClose: () => void;
   /** 표시 중인 유효한 잔여시간이 0초가 되었을 때 최신 신호를 다시 요청하는 콜백이다. */
@@ -27,12 +29,20 @@ export function SignalCard({
   isLoading,
   isRefreshing,
   errorMessage,
+  onRefresh,
   onClose,
   onRemainingTimeEnd,
 }: SignalCardProps) {
-  const { directions, isStale, updatedTime } = useSignalCard(
+  const {
+    directions,
+    isStale,
+    updatedTime,
+    handleRefresh,
+    isRefreshCoolingDown,
+  } = useSignalCard(
     signal,
     onRemainingTimeEnd,
+    onRefresh,
   );
 
   return (
@@ -42,14 +52,40 @@ export function SignalCard({
           <span className={styles.eyebrow}>실시간 보행신호</span>
           <h2>{intersection.name}</h2>
         </div>
-        <button
-          type="button"
-          className={styles.closeButton}
-          onClick={onClose}
-          aria-label="신호정보 닫기"
-        >
-          ×
-        </button>
+        <div className={styles.headingActions}>
+          <button
+            type="button"
+            className={styles.refreshButton}
+            onClick={handleRefresh}
+            disabled={isLoading || isRefreshing || isRefreshCoolingDown}
+            aria-label={
+              isRefreshing
+                ? "신호정보 새로고침 중"
+                : isRefreshCoolingDown
+                  ? "신호정보 새로고침 대기 중"
+                  : "신호정보 새로고침"
+            }
+          >
+            <svg
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              className={`${styles.refreshIcon} ${
+                isRefreshing ? styles.refreshIconRefreshing : ""
+              }`}
+            >
+              <path d="M20 11a8 8 0 1 0-2.34 5.66" />
+              <path d="M20 4v7h-7" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className={styles.closeButton}
+            onClick={onClose}
+            aria-label="신호정보 닫기"
+          >
+            ×
+          </button>
+        </div>
       </div>
 
       {isLoading && (

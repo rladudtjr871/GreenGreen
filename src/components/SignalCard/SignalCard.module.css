@@ -34,9 +34,15 @@
   letter-spacing: -0.04em;
 }
 
+.headingActions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 7px;
+}
+
+.refreshButton,
 .closeButton {
   display: grid;
-  flex: 0 0 auto;
   width: 32px;
   height: 32px;
   place-items: center;
@@ -45,13 +51,46 @@
   color: #6c7c73;
   background: #eef4f0;
   cursor: pointer;
+}
+
+.refreshButton {
+  color: #03a94d;
+}
+
+.refreshButton:disabled {
+  color: #9aaba1;
+  cursor: wait;
+}
+
+.refreshIcon {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.refreshIconRefreshing {
+  animation: refreshSpin 0.8s linear infinite;
+}
+
+.closeButton {
   font-size: 22px;
   line-height: 1;
 }
 
+.refreshButton:focus-visible,
 .closeButton:focus-visible {
   outline: 3px solid rgba(3, 199, 90, 0.28);
   outline-offset: 2px;
+}
+
+@keyframes refreshSpin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .signalList {
@@ -179,5 +218,11 @@
 
   .signalList {
     max-height: 170px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .refreshIconRefreshing {
+    animation: none;
   }
 }
