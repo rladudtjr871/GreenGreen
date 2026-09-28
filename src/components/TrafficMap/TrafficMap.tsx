@@ -15,8 +15,6 @@ export function TrafficMap() {
     isCurrentLocationDisabled,
     handleCurrentLocation,
     activeLayer,
-    trashBinVersion,
-    handleTrashBinVersionChange,
     handleLayerChange,
     guide,
     serviceBadgeText,
@@ -96,32 +94,6 @@ export function TrafficMap() {
             </button>
           </nav>
         </header>
-
-        {activeLayer === "trashBins" && (
-          <div className={styles.versionPanel}>
-            <label className={styles.versionControl}>
-              <span>데이터</span>
-              <select
-                value={trashBinVersion}
-                onChange={(event) =>
-                  handleTrashBinVersionChange(
-                    event.target.value === "v2" ? "v2" : "v1",
-                  )
-                }
-                aria-label="휴지통 데이터 버전"
-              >
-                <option value="v1">v1 · 전국 표준</option>
-                <option value="v2">v2 · 서울 2025.11</option>
-              </select>
-            </label>
-
-            {trashBinVersion === "v2" && (
-              <p className={styles.versionNotice} role="note">
-                주소 기반 변환 좌표로 실제 설치 위치와 다를 수 있습니다.
-              </p>
-            )}
-          </div>
-        )}
 
         {mapStatus === "loading" && (
           <div className={styles.mapMessage} role="status">

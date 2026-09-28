@@ -156,62 +156,6 @@
   text-align: center;
 }
 
-.versionPanel {
-  position: absolute;
-  z-index: 10;
-  top: 112px;
-  right: 20px;
-  display: flex;
-  max-width: min(360px, calc(100% - 40px));
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
-}
-
-.versionControl {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px 8px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  border-radius: 14px;
-  color: #596b62;
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 8px 24px rgba(20, 49, 34, 0.12);
-  font-size: 12px;
-  font-weight: 750;
-  backdrop-filter: blur(14px);
-}
-
-.versionNotice {
-  padding: 9px 12px;
-  border: 1px solid #eadfbd;
-  border-radius: 12px;
-  color: #72591d;
-  background: rgba(255, 250, 232, 0.96);
-  box-shadow: 0 8px 24px rgba(65, 52, 19, 0.1);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.45;
-  word-break: keep-all;
-  backdrop-filter: blur(14px);
-}
-
-.versionControl select {
-  padding: 6px 28px 6px 9px;
-  border: 1px solid #dce9e1;
-  border-radius: 9px;
-  color: #173b2a;
-  background: #f5faf7;
-  font: inherit;
-  cursor: pointer;
-}
-
-.versionControl select:focus-visible {
-  outline: 3px solid rgba(3, 199, 90, 0.28);
-  outline-offset: 2px;
-}
-
 .mapMessage {
   position: absolute;
   z-index: 7;
@@ -441,17 +385,6 @@
     left: 12px;
     min-height: 64px;
     border-radius: 18px;
-  }
-
-  .versionPanel {
-    top: 88px;
-    right: 12px;
-    max-width: calc(100% - 24px);
-  }
-
-  .versionNotice {
-    max-width: 270px;
-    font-size: 11px;
   }
 
   .logo {

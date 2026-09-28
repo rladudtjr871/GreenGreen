@@ -29,7 +29,6 @@ import type {
   MapRegion,
   MapViewport,
 } from "@/types/map";
-import type { TrashBinDataVersion } from "@/types/trashBin";
 
 type MapStatus = "loading" | "ready" | "error";
 type LocationStatus = "idle" | "locating" | "error";
@@ -40,6 +39,7 @@ type ServiceAreaStatus =
   | "unknown";
 
 const NAVER_MAP_CLIENT_ID = process.env.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID;
+const TRASH_BIN_DATA_VERSION = "v1" as const;
 const MISSING_CLIENT_ID_MESSAGE =
   "NEXT_PUBLIC_NAVER_MAP_CLIENT_ID 환경변수를 설정해 주세요.";
 
@@ -87,8 +87,6 @@ export function useTrafficMap() {
   );
   const [viewport, setViewport] = useState<MapViewport | null>(null);
   const [activeLayer, setActiveLayer] = useState<MapLayer>("signals");
-  const [trashBinVersion, setTrashBinVersion] =
-    useState<TrashBinDataVersion>("v1");
   const [selectedIntersection, setSelectedIntersection] =
     useState<Intersection | null>(null);
   const [locationStatus, setLocationStatus] =
@@ -274,17 +272,17 @@ export function useTrafficMap() {
   const trashBinsQuery = useQuery({
     // 3. 휴지통 탭과 줌 조건을 만족할 때만 현재 범위의 정적 위치를 조회한다.
     // 비활성 레이어의 API 호출과 보이지 않는 마커 생성을 함께 막는다.
-    queryKey: ["trashBins", trashBinVersion, normalizedBounds],
+    queryKey: ["trashBins", TRASH_BIN_DATA_VERSION, normalizedBounds],
     queryFn: () =>
       normalizedBounds
-        ? fetchTrashBins(normalizedBounds, trashBinVersion)
+        ? fetchTrashBins(normalizedBounds, TRASH_BIN_DATA_VERSION)
         : Promise.resolve([]),
     enabled: isTrashBinQueryEnabled,
     staleTime: 30 * 60_000,
     placeholderData: (previousData, previousQuery) => {
       // 4. 같은 데이터 버전에서 지도 범위만 바뀌면 이전 결과를 응답 전까지 유지한다.
       // v1과 v2를 전환할 때는 서로 다른 출처의 마커가 잠시 섞이지 않도록 유지하지 않는다.
-      return previousQuery?.queryKey[1] === trashBinVersion
+      return previousQuery?.queryKey[1] === TRASH_BIN_DATA_VERSION
         ? previousData
         : undefined;
     },
@@ -547,8 +545,6 @@ export function useTrafficMap() {
       mapStatus !== "ready" || locationStatus === "locating",
     handleCurrentLocation,
     activeLayer,
-    trashBinVersion,
-    handleTrashBinVersionChange: setTrashBinVersion,
     handleLayerChange: (layer: MapLayer) => {
       // 1. 신호 레이어를 떠날 때 선택 교차로를 먼저 해제한다.
       // 보이지 않는 신호 Query와 타이머 팝업이 계속 동작하는 것을 막기 위한 순서다.
