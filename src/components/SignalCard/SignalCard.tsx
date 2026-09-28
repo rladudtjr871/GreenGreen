@@ -19,8 +19,8 @@ type SignalCardProps = {
   onRefresh: () => void;
   /** 사용자가 상세 카드를 닫을 때 선택 상태를 해제하는 콜백이다. */
   onClose: () => void;
-  /** 표시 중인 유효한 잔여시간이 0초가 되었을 때 최신 신호를 다시 요청하는 콜백이다. */
-  onRemainingTimeEnd: () => void;
+  /** 잔여시간 종료 또는 stale 임박 시 최신 신호를 다시 요청하는 콜백이다. */
+  onAutoRefresh: () => void;
 };
 
 export function SignalCard({
@@ -31,7 +31,7 @@ export function SignalCard({
   errorMessage,
   onRefresh,
   onClose,
-  onRemainingTimeEnd,
+  onAutoRefresh,
 }: SignalCardProps) {
   const {
     directions,
@@ -41,7 +41,7 @@ export function SignalCard({
     isRefreshCoolingDown,
   } = useSignalCard(
     signal,
-    onRemainingTimeEnd,
+    onAutoRefresh,
     onRefresh,
   );
 

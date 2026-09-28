@@ -266,7 +266,7 @@ export function useTrafficMap() {
 
   const signalQuery = useQuery({
     // 3. 사용자가 선택한 교차로만 실시간 신호를 조회한다.
-    // 정기 폴링 없이 잔여시간이 끝날 때만 재조회해 외부 API 호출량을 제한한다.
+    // 정기 폴링 없이 잔여시간 종료 또는 stale 임박 시에만 재조회해 API 호출량을 제한한다.
     queryKey: ["signal", activeSelectedIntersection?.intersectionId],
     queryFn: () =>
       activeSelectedIntersection
@@ -277,7 +277,7 @@ export function useTrafficMap() {
   });
   const refetchSignal = signalQuery.refetch;
   const handleRefreshSignal = useCallback(() => {
-    // 0초 도달 후 재시도가 겹치면 진행 중인 요청을 취소하지 않고 기존 요청을 공유한다.
+    // 자동 동기화가 겹치면 진행 중인 요청을 취소하지 않고 기존 요청을 공유한다.
     void refetchSignal({ cancelRefetch: false });
   }, [refetchSignal]);
 
@@ -297,14 +297,14 @@ export function useTrafficMap() {
       signalQuery.data?.intersectionId === selectedIntersectionId
         ? signalQuery.data
         : null;
-    const observedTime = signal
-      ? new Date(signal.observedAt).getTime()
+    const receivedTime = signal
+      ? new Date(signal.receivedAt).getTime()
       : Number.NaN;
     const isSignalFresh =
       signal !== null &&
       !signal.isStale &&
-      Number.isFinite(observedTime) &&
-      Date.now() - observedTime <= SIGNAL_STALE_AFTER_MS;
+      Number.isFinite(receivedTime) &&
+      Date.now() - receivedTime <= SIGNAL_STALE_AFTER_MS;
     const visibleSignal = isSignalFresh ? signal : null;
 
     // 4. 교차로와 선택 신호를 함께 전달해 선택 마커의 방향 상태를 갱신한다.
@@ -320,7 +320,7 @@ export function useTrafficMap() {
       return;
     }
 
-    // 5. 다음 폴링이 실패해도 관측 시각이 stale 기준을 넘으면 방향 색상을 제거한다.
+    // 5. 다음 동기화가 실패해도 수신 시각이 stale 기준을 넘으면 방향 색상을 제거한다.
     // 오래된 보행 가능 화살표가 지도에 계속 남는 안전 문제를 방지한다.
     const staleTimer = window.setTimeout(() => {
       controller.setIntersections(
@@ -329,7 +329,7 @@ export function useTrafficMap() {
         null,
         handleSelectIntersection,
       );
-    }, Math.max(0, observedTime + SIGNAL_STALE_AFTER_MS - Date.now()));
+    }, Math.max(0, receivedTime + SIGNAL_STALE_AFTER_MS - Date.now()));
 
     return () => window.clearTimeout(staleTimer);
   }, [

@@ -5,6 +5,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   SIGNAL_MANUAL_REFRESH_COOLDOWN_MS,
   SIGNAL_STALE_AFTER_MS,
+  SIGNAL_STALE_REFRESH_LEAD_MS,
+  SIGNAL_ZERO_INITIAL_REFRESH_DELAY_MS,
   SIGNAL_ZERO_RETRY_DELAY_MS,
 } from "@/constants/signal";
 import type {
@@ -32,7 +34,7 @@ function formatRemainingTime(totalSeconds: number): string {
 
 export function useSignalCard(
   signal: PedestrianSignal | undefined,
-  onRemainingTimeEnd: () => void,
+  onAutoRefresh: () => void,
   onRefresh: () => void,
 ) {
   const [now, setNow] = useState(() => Date.now());
@@ -98,8 +100,8 @@ export function useSignalCard(
       return;
     }
 
-    // 2. 보정값이 1초 미만이면 최초에는 즉시 확인하고, 같은 결과가 이어지면 2초 뒤 재확인한다.
-    // 0초 응답이 갱신되기 전까지 즉시 요청이 반복되는 것을 막으면서 신호 전환은 빠르게 감지한다.
+    // 2. 0초 표시 후 최초에는 1초, 같은 0초 응답이 이어지면 2초 뒤 재확인한다.
+    // 사용자가 0초 상태를 인지할 시간을 주고 API 갱신 전의 같은 응답이 빠르게 반복되는 것도 막는다.
     const receivedTime = new Date(signal.receivedAt).getTime();
     const shortestRemainingSeconds = Math.min(...validRemainingSeconds);
 
@@ -109,48 +111,60 @@ export function useSignalCard(
 
     const elapsedMilliseconds = Math.max(0, Date.now() - receivedTime);
     const isBelowOneSecond = shortestRemainingSeconds < 1;
-    const refetchDelay = isBelowOneSecond
+    const countdownRefreshDelay = isBelowOneSecond
       ? isZeroRetryingRef.current
         ? SIGNAL_ZERO_RETRY_DELAY_MS
-        : 0
+        : SIGNAL_ZERO_INITIAL_REFRESH_DELAY_MS
       : Math.max(
           0,
           shortestRemainingSeconds * 1_000 - elapsedMilliseconds,
-        );
+        ) + SIGNAL_ZERO_INITIAL_REFRESH_DELAY_MS;
+
+    // 3. 긴 신호는 0초보다 stale 시점이 먼저 올 수 있어 그 직전에 한 번만 동기화한다.
+    // 10초 주기 폴링 없이도 유효한 카운트다운이 중간에 정보 없음으로 바뀌는 현상을 방지한다.
+    const staleRefreshDelay = Math.max(
+      0,
+      receivedTime +
+        SIGNAL_STALE_AFTER_MS -
+        SIGNAL_STALE_REFRESH_LEAD_MS -
+        Date.now(),
+    );
+    const isCountdownRefresh = countdownRefreshDelay <= staleRefreshDelay;
+    const refetchDelay = Math.min(countdownRefreshDelay, staleRefreshDelay);
 
     if (!isBelowOneSecond) {
       isZeroRetryingRef.current = false;
     }
 
     const timer = window.setTimeout(() => {
-      const observedTime = new Date(signal.observedAt).getTime();
+      const latestReceivedTime = new Date(signal.receivedAt).getTime();
       const isStillFresh =
-        Number.isFinite(observedTime) &&
-        Date.now() - observedTime <= SIGNAL_STALE_AFTER_MS;
+        Number.isFinite(latestReceivedTime) &&
+        Date.now() - latestReceivedTime <= SIGNAL_STALE_AFTER_MS;
 
-      // 3. 타이머가 끝난 시점에도 데이터가 신선할 때만 즉시 재조회한다.
+      // 4. 타이머가 끝난 시점에도 데이터가 신선할 때만 재조회한다.
       // 폴링 실패로 오래된 화면이 남은 경우 추가 호출이 반복되는 것을 방지한다.
       if (isStillFresh) {
-        isZeroRetryingRef.current = true;
-        onRemainingTimeEnd();
+        isZeroRetryingRef.current = isCountdownRefresh;
+        onAutoRefresh();
       }
     }, refetchDelay);
 
     return () => window.clearTimeout(timer);
-  }, [onRemainingTimeEnd, signal]);
+  }, [onAutoRefresh, signal]);
 
   const isStale = useMemo(() => {
     if (!signal) {
       return false;
     }
 
-    const observedTime = new Date(signal.observedAt).getTime();
+    const receivedTime = new Date(signal.receivedAt).getTime();
     // 서버가 표시한 stale 상태를 우선 존중하고 클라이언트 경과 시간도 함께 검사한다.
-    // 다음 폴링 전 데이터가 임계 시간을 넘더라도 현재 신호처럼 보이지 않게 한다.
+    // 서버가 유효하다고 판단해 전달한 뒤의 경과 시간은 수신 시각을 기준으로 계산한다.
     return (
       signal.isStale ||
-      !Number.isFinite(observedTime) ||
-      now - observedTime > SIGNAL_STALE_AFTER_MS
+      !Number.isFinite(receivedTime) ||
+      now - receivedTime > SIGNAL_STALE_AFTER_MS
     );
   }, [now, signal]);
 
