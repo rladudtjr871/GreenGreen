@@ -1,6 +1,7 @@
 import type { Intersection } from "@/types/intersection";
 import type { MapBounds } from "@/types/map";
 import type { TrashBin, TrashBinDataVersion } from "@/types/trashBin";
+import type { Restroom } from "@/types/restroom";
 import type {
   PedestrianSignal,
   PedestrianSignalDirection,
@@ -37,6 +38,32 @@ function isTrashBin(value: unknown): value is TrashBin {
     typeof value.detail === "string" &&
     typeof value.trashBinType === "string" &&
     typeof value.managingOrganization === "string" &&
+    typeof value.coordinate.latitude === "number" &&
+    typeof value.coordinate.longitude === "number"
+  );
+}
+
+function isRestroom(value: unknown): value is Restroom {
+  if (!isRecord(value) || !isRecord(value.coordinate)) {
+    return false;
+  }
+
+  return (
+    typeof value.restroomId === "string" &&
+    typeof value.name === "string" &&
+    typeof value.district === "string" &&
+    typeof value.roadAddress === "string" &&
+    typeof value.lotAddress === "string" &&
+    typeof value.restroomType === "string" &&
+    typeof value.openingHours === "string" &&
+    typeof value.availability === "string" &&
+    typeof value.accessibleAvailability === "string" &&
+    typeof value.locationCategory === "string" &&
+    typeof value.closedDays === "string" &&
+    typeof value.facilities === "string" &&
+    typeof value.safetyFacilities === "string" &&
+    typeof value.telephone === "string" &&
+    typeof value.note === "string" &&
     typeof value.coordinate.latitude === "number" &&
     typeof value.coordinate.longitude === "number"
   );
@@ -130,6 +157,30 @@ export async function fetchTrashBins(
 
   if (!Array.isArray(payload) || !payload.every(isTrashBin)) {
     throw new Error("휴지통 응답 형식이 올바르지 않습니다.");
+  }
+
+  return payload;
+}
+
+export async function fetchRestrooms(
+  bounds: MapBounds,
+): Promise<Restroom[]> {
+  // 1. 현재 지도 경계를 Route Handler 쿼리로 변환한다.
+  // 서버에서 화면 안의 행만 선별해 브라우저의 데이터 처리량을 제한한다.
+  const searchParams = new URLSearchParams({
+    north: String(bounds.north),
+    east: String(bounds.east),
+    south: String(bounds.south),
+    west: String(bounds.west),
+  });
+
+  // 2. 응답 구조를 런타임에서도 검증한다.
+  // 정적 데이터 형식이 변경되어도 잘못된 마커가 만들어지기 전에 오류로 처리한다.
+  const response = await fetch(`/api/restrooms?${searchParams.toString()}`);
+  const payload = await parseApiResponse(response);
+
+  if (!Array.isArray(payload) || !payload.every(isRestroom)) {
+    throw new Error("화장실 응답 형식이 올바르지 않습니다.");
   }
 
   return payload;

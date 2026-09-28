@@ -3,6 +3,7 @@
 import styles from "./TrafficMap.module.css";
 import { useTrafficMap } from "./useTrafficMap";
 import { SignalCard } from "@/components/SignalCard/SignalCard";
+import { RestroomCard } from "@/components/RestroomCard/RestroomCard";
 
 export function TrafficMap() {
   const {
@@ -19,12 +20,14 @@ export function TrafficMap() {
     guide,
     serviceBadgeText,
     selectedIntersection,
+    selectedRestroom,
     signal,
     isSignalLoading,
     isSignalRefreshing,
     signalErrorMessage,
     handleRefreshSignal,
     handleCloseSignal,
+    handleCloseRestroom,
   } = useTrafficMap();
 
   return (
@@ -92,6 +95,17 @@ export function TrafficMap() {
             >
               휴지통
             </button>
+            <button
+              type="button"
+              className={`${styles.layerTab} ${
+                activeLayer === "restrooms" ? styles.layerTabActive : ""
+              }`}
+              role="tab"
+              aria-selected={activeLayer === "restrooms"}
+              onClick={() => handleLayerChange("restrooms")}
+            >
+              화장실
+            </button>
           </nav>
         </header>
 
@@ -123,6 +137,11 @@ export function TrafficMap() {
             onRefresh={handleRefreshSignal}
             onAutoRefresh={handleRefreshSignal}
             onClose={handleCloseSignal}
+          />
+        ) : selectedRestroom ? (
+          <RestroomCard
+            restroom={selectedRestroom}
+            onClose={handleCloseRestroom}
           />
         ) : (
           <div className={styles.mapControls}>

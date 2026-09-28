@@ -10,6 +10,7 @@ import type {
   SignalDirection,
 } from "@/types/signal";
 import type { TrashBin } from "@/types/trashBin";
+import type { Restroom } from "@/types/restroom";
 
 const NAVER_MAP_SCRIPT_ID = "naver-maps-sdk";
 
@@ -209,6 +210,12 @@ export type NaverMapController = {
   ) => void;
   /** 현재 조회 범위의 휴지통 마커를 지도에 동기화한다. */
   setTrashBins: (trashBins: TrashBin[]) => void;
+  /** 현재 조회 범위의 화장실 마커와 선택 상태를 지도에 동기화한다. */
+  setRestrooms: (
+    restrooms: Restroom[],
+    selectedRestroomId: string | null,
+    onSelect: (restroom: Restroom) => void,
+  ) => void;
   /** 좌표를 법정동 기준 광역 지역 정보로 변환한다. */
   resolveRegion: (coordinate: MapCoordinate) => Promise<MapRegion | null>;
   /** 어댑터가 만든 이벤트, 마커, 지도 인스턴스를 정리한다. */
@@ -308,6 +315,14 @@ function createTrashBinMarkerContent(name: string | null): string {
   return `<div style="position:relative;width:30px;height:30px">${label}<div aria-hidden="true" style="display:grid;width:30px;height:30px;place-items:center;border:3px solid white;border-radius:11px;background:#68716d;box-shadow:0 5px 14px rgba(43,50,46,.3)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"></path><path d="M9 7V4h6v3"></path><path d="M7 7l1 13h8l1-13"></path><path d="M10 11v5M14 11v5"></path></svg></div></div>`;
 }
 
+function createRestroomMarkerContent(isSelected: boolean): string {
+  const background = isSelected ? "#125fa8" : "#3979b8";
+  const size = isSelected ? 34 : 30;
+  const iconSize = isSelected ? 22 : 19;
+
+  return `<div aria-hidden="true" style="display:grid;width:${size}px;height:${size}px;place-items:center;border:3px solid white;border-radius:11px;background:${background};box-shadow:0 5px 14px rgba(28,64,99,.32)"><svg width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24" fill="white"><circle cx="6.5" cy="4.5" r="2.2"></circle><path d="M3.2 9.2c0-1.5 1.2-2.7 2.7-2.7h1.2c1.5 0 2.7 1.2 2.7 2.7v3.9H8.5V21h-4v-7.9H3.2V9.2Z"></path><circle cx="17.5" cy="4.5" r="2.2"></circle><path d="M14.8 9.1c.2-1.5 1.3-2.6 2.7-2.6s2.5 1.1 2.7 2.6l1.1 7h-2V21h-3.6v-4.9h-2l1.1-7Z"></path><rect x="11.35" y="3" width="1.3" height="18" rx=".65" opacity=".72"></rect></svg></div>`;
+}
+
 export function loadNaverMapsSdk(clientId: string): Promise<NaverMapsSdk> {
   // 1. Geocoder까지 로드된 SDK가 있으면 같은 전역 객체를 재사용한다.
   // 페이지 전환이나 재마운트 때 스크립트를 중복 삽입하지 않기 위함이다.
@@ -399,6 +414,11 @@ export function createNaverMap(
     clickListener: NaverEventListener;
     trashBin: TrashBin;
   }>();
+  const restroomMarkers = new Map<string, {
+    marker: NaverMarker;
+    clickListener: NaverEventListener;
+    restroom: Restroom;
+  }>();
 
   const clearCurrentLocationMarker = () => {
     currentLocationMarker?.setMap(null);
@@ -420,6 +440,14 @@ export function createNaverMap(
       marker.setMap(null);
     });
     trashBinMarkers.clear();
+  };
+
+  const clearRestroomMarkers = () => {
+    restroomMarkers.forEach(({ marker, clickListener }) => {
+      sdk.Event.removeListener(clickListener);
+      marker.setMap(null);
+    });
+    restroomMarkers.clear();
   };
 
   const updateTrashBinMarkerAppearance = (trashBinId: string) => {
@@ -478,6 +506,37 @@ export function createNaverMap(
       marker,
       clickListener,
       trashBin,
+    });
+  };
+
+  const addRestroomMarker = (
+    restroom: Restroom,
+    selectedRestroomId: string | null,
+    onSelect: (restroom: Restroom) => void,
+  ) => {
+    const isSelected = restroom.restroomId === selectedRestroomId;
+    const markerSize = isSelected ? 34 : 30;
+    const marker = new sdk.Marker({
+      map,
+      position: new sdk.LatLng(
+        restroom.coordinate.latitude,
+        restroom.coordinate.longitude,
+      ),
+      title: restroom.name,
+      icon: {
+        content: createRestroomMarkerContent(isSelected),
+        anchor: new sdk.Point(markerSize / 2, markerSize / 2),
+      },
+      zIndex: isSelected ? 85 : 45,
+    });
+    const clickListener = sdk.Event.addListener(marker, "click", () => {
+      onSelect(restroom);
+    });
+
+    restroomMarkers.set(restroom.restroomId, {
+      marker,
+      clickListener,
+      restroom,
     });
   };
 
@@ -632,6 +691,43 @@ export function createNaverMap(
         }
       });
     },
+    setRestrooms(restrooms, selectedRestroomId, onSelect) {
+      const nextRestroomIds = new Set(
+        restrooms.map(({ restroomId }) => restroomId),
+      );
+
+      // 1. 새 지도 범위에서 제외된 마커만 제거한다.
+      // 공통 마커를 유지해 지도 이동 때 전체 마커가 깜빡이는 현상을 방지한다.
+      restroomMarkers.forEach(({ marker, clickListener }, restroomId) => {
+        if (nextRestroomIds.has(restroomId)) {
+          return;
+        }
+
+        sdk.Event.removeListener(clickListener);
+        marker.setMap(null);
+        restroomMarkers.delete(restroomId);
+      });
+
+      // 2. 기존 마커는 선택 여부에 맞춰 아이콘과 우선순위만 갱신한다.
+      // React 팝업 상태와 지도 위 강조 상태를 항상 같은 값으로 유지한다.
+      restroomMarkers.forEach(({ marker }, restroomId) => {
+        const isSelected = restroomId === selectedRestroomId;
+        const markerSize = isSelected ? 34 : 30;
+        marker.setIcon({
+          content: createRestroomMarkerContent(isSelected),
+          anchor: new sdk.Point(markerSize / 2, markerSize / 2),
+        });
+        marker.setZIndex(isSelected ? 85 : 45);
+      });
+
+      // 3. 현재 범위에 새로 들어온 화장실만 마커로 추가한다.
+      // 같은 ID의 NAVER 마커 인스턴스와 클릭 리스너는 계속 재사용한다.
+      restrooms.forEach((restroom) => {
+        if (!restroomMarkers.has(restroom.restroomId)) {
+          addRestroomMarker(restroom, selectedRestroomId, onSelect);
+        }
+      });
+    },
     resolveRegion(coordinate) {
       return new Promise((resolve, reject) => {
         const service = sdk.Service;
@@ -683,6 +779,7 @@ export function createNaverMap(
       // 컴포넌트 해제 시 어댑터가 소유한 마커와 지도 인스턴스를 모두 정리한다.
       clearIntersectionMarkers();
       clearTrashBinMarkers();
+      clearRestroomMarkers();
       clearCurrentLocationMarker();
       map.destroy?.();
     },

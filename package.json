@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
-    "data:intersections": "node scripts/generate-intersections-snapshot.mjs"
+    "data:intersections": "node scripts/generate-intersections-snapshot.mjs",
+    "data:restrooms": "node scripts/generate-restrooms-snapshot.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.103.1",

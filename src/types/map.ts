@@ -30,4 +30,4 @@ export type MapRegion = {
   area1Name: string;
 };
 
-export type MapLayer = "signals" | "trashBins";
+export type MapLayer = "signals" | "trashBins" | "restrooms";

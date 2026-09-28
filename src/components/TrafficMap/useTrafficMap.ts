@@ -11,6 +11,7 @@ import {
 import {
   INTERSECTION_QUERY_MIN_ZOOM,
   MAP_IDLE_DEBOUNCE_MS,
+  RESTROOM_QUERY_MIN_ZOOM,
   SEOUL_CITY_HALL_COORDINATE,
   SEOUL_LEGAL_CODE_PREFIX,
   TRASH_BIN_QUERY_MIN_ZOOM,
@@ -19,6 +20,7 @@ import { SIGNAL_STALE_AFTER_MS } from "@/constants/signal";
 import {
   fetchIntersections,
   fetchPedestrianSignal,
+  fetchRestrooms,
   fetchTrashBins,
 } from "@/services/greenGreenApi";
 import type { Intersection } from "@/types/intersection";
@@ -29,6 +31,7 @@ import type {
   MapRegion,
   MapViewport,
 } from "@/types/map";
+import type { Restroom } from "@/types/restroom";
 
 type MapStatus = "loading" | "ready" | "error";
 type LocationStatus = "idle" | "locating" | "error";
@@ -89,6 +92,8 @@ export function useTrafficMap() {
   const [activeLayer, setActiveLayer] = useState<MapLayer>("signals");
   const [selectedIntersection, setSelectedIntersection] =
     useState<Intersection | null>(null);
+  const [selectedRestroom, setSelectedRestroom] =
+    useState<Restroom | null>(null);
   const [locationStatus, setLocationStatus] =
     useState<LocationStatus>("idle");
   const [locationMessage, setLocationMessage] = useState("");
@@ -288,10 +293,37 @@ export function useTrafficMap() {
     },
   });
 
+  const isRestroomQueryEnabled =
+    activeLayer === "restrooms" &&
+    mapStatus === "ready" &&
+    viewport !== null &&
+    viewport.zoom >= RESTROOM_QUERY_MIN_ZOOM &&
+    normalizedBounds !== null;
+
+  const restroomsQuery = useQuery({
+    // 5. 화장실 레이어와 줌 조건을 모두 만족할 때만 현재 범위를 조회한다.
+    // 다른 레이어를 보는 동안 불필요한 API 호출과 마커 생성을 하지 않는다.
+    queryKey: ["restrooms", normalizedBounds],
+    queryFn: () =>
+      normalizedBounds
+        ? fetchRestrooms(normalizedBounds)
+        : Promise.resolve([]),
+    enabled: isRestroomQueryEnabled,
+    staleTime: 30 * 60_000,
+    placeholderData: keepPreviousData,
+  });
+
   const handleSelectIntersection = useCallback(
     (intersection: Intersection) => setSelectedIntersection(intersection),
     [],
   );
+  const handleSelectRestroom = useCallback(
+    (restroom: Restroom) => setSelectedRestroom(restroom),
+    [],
+  );
+  const activeSelectedRestroom = isRestroomQueryEnabled
+    ? selectedRestroom
+    : null;
   const activeSelectedIntersection = isIntersectionQueryEnabled
     ? selectedIntersection
     : null;
@@ -342,6 +374,9 @@ export function useTrafficMap() {
     const visibleTrashBins = isTrashBinQueryEnabled
       ? (trashBinsQuery.data ?? [])
       : [];
+    const visibleRestrooms = isRestroomQueryEnabled
+      ? (restroomsQuery.data ?? [])
+      : [];
 
     // 4. 활성 탭에 해당하는 마커만 전달하고 다른 레이어는 빈 배열로 즉시 비운다.
     // 탭 전환 뒤 두 종류의 마커가 겹치거나 비활성 데이터가 남는 것을 방지한다.
@@ -353,6 +388,11 @@ export function useTrafficMap() {
       handleSelectIntersection,
     );
     controller.setTrashBins(visibleTrashBins);
+    controller.setRestrooms(
+      visibleRestrooms,
+      activeSelectedRestroom?.restroomId ?? null,
+      handleSelectRestroom,
+    );
 
     if (!visibleSignal) {
       return;
@@ -372,10 +412,14 @@ export function useTrafficMap() {
     return () => window.clearTimeout(staleTimer);
   }, [
     activeSelectedIntersection?.intersectionId,
+    activeSelectedRestroom?.restroomId,
     handleSelectIntersection,
+    handleSelectRestroom,
     intersectionsQuery.data,
     isIntersectionQueryEnabled,
+    isRestroomQueryEnabled,
     isTrashBinQueryEnabled,
+    restroomsQuery.data,
     signalQuery.data,
     trashBinsQuery.data,
   ]);
@@ -429,6 +473,7 @@ export function useTrafficMap() {
 
   const intersections = intersectionsQuery.data ?? [];
   const trashBins = trashBinsQuery.data ?? [];
+  const restrooms = restroomsQuery.data ?? [];
   const intersectionErrorMessage =
     intersectionsQuery.error instanceof Error
       ? intersectionsQuery.error.message
@@ -437,6 +482,8 @@ export function useTrafficMap() {
     signalQuery.error instanceof Error ? signalQuery.error.message : "";
   const trashBinErrorMessage =
     trashBinsQuery.error instanceof Error ? trashBinsQuery.error.message : "";
+  const restroomErrorMessage =
+    restroomsQuery.error instanceof Error ? restroomsQuery.error.message : "";
 
   let guide = {
     eyebrow: `ZOOM! ZOOM!`,
@@ -447,7 +494,37 @@ export function useTrafficMap() {
 
   // 활성 레이어의 조회 가능 여부를 먼저 본 뒤 로딩, 오류, 빈 결과, 성공 순으로 안내한다.
   // 동시에 여러 상태가 참이어도 사용자에게 가장 우선적인 상태 하나만 보여준다.
-  if (activeLayer === "trashBins" && isTrashBinQueryEnabled && trashBinsQuery.isLoading) {
+  if (activeLayer === "restrooms" && isRestroomQueryEnabled && restroomsQuery.isLoading) {
+    guide = {
+      eyebrow: "화장실 확인 중",
+      title: "주변 화장실을 찾고 있어요",
+      description: "현재 지도 범위에 등록된 공중화장실 위치를 확인하고 있습니다.",
+    };
+  } else if (activeLayer === "restrooms" && isRestroomQueryEnabled && restroomErrorMessage) {
+    guide = {
+      eyebrow: "조회 지연",
+      title: "화장실 정보를 가져오지 못했어요",
+      description: restroomErrorMessage,
+    };
+  } else if (activeLayer === "restrooms" && isRestroomQueryEnabled && restrooms.length === 0) {
+    guide = {
+      eyebrow: "등록 정보 없음",
+      title: "이 범위에는 등록된 화장실이 없어요",
+      description: "지도를 이동해 다른 지역의 공중화장실을 확인해 보세요.",
+    };
+  } else if (activeLayer === "restrooms" && isRestroomQueryEnabled) {
+    guide = {
+      eyebrow: `${restrooms.length}개 화장실`,
+      title: "화장실 마커를 선택해 주세요",
+      description: "파란색 화장실 마커를 누르면 운영 시간과 시설 정보를 확인할 수 있습니다.",
+    };
+  } else if (activeLayer === "restrooms") {
+    guide = {
+      eyebrow: "ZOOM! ZOOM!",
+      title: "지도를 조금 더 확대해 주세요",
+      description: `화장실 위치는 지도 확대 단계 ${RESTROOM_QUERY_MIN_ZOOM}부터 표시합니다.`,
+    };
+  } else if (activeLayer === "trashBins" && isTrashBinQueryEnabled && trashBinsQuery.isLoading) {
     guide = {
       eyebrow: "휴지통 확인 중",
       title: "주변 휴지통을 찾고 있어요",
@@ -518,7 +595,13 @@ export function useTrafficMap() {
   }
 
   const serviceBadgeText =
-    activeLayer === "trashBins"
+    activeLayer === "restrooms"
+      ? !isRestroomQueryEnabled
+        ? "ZOOM! ZOOM!"
+        : restroomsQuery.isFetching
+          ? "화장실 확인 중"
+          : `${restrooms.length}개 화장실`
+      : activeLayer === "trashBins"
       ? !isTrashBinQueryEnabled
         ? "ZOOM! ZOOM!"
         : trashBinsQuery.isFetching
@@ -552,17 +635,25 @@ export function useTrafficMap() {
         setSelectedIntersection(null);
       }
 
+      // 화장실 레이어를 벗어나면 상세 팝업과 선택 강조를 함께 해제한다.
+      // 다시 돌아왔을 때 이전 화장실이 자동으로 열린 상태가 남지 않게 한다.
+      if (layer !== "restrooms") {
+        setSelectedRestroom(null);
+      }
+
       // 2. 활성 레이어를 바꾸면 각 Query와 마커 동기화 효과가 한 종류만 남긴다.
       setActiveLayer(layer);
     },
     guide,
     serviceBadgeText,
     selectedIntersection: activeSelectedIntersection,
+    selectedRestroom: activeSelectedRestroom,
     signal: signalQuery.data,
     isSignalLoading: signalQuery.isLoading,
     isSignalRefreshing: signalQuery.isFetching && !signalQuery.isLoading,
     signalErrorMessage,
     handleRefreshSignal,
     handleCloseSignal: () => setSelectedIntersection(null),
+    handleCloseRestroom: () => setSelectedRestroom(null),
   };
 }
