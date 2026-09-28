@@ -93,9 +93,18 @@ type NaverMap = {
   destroy?: () => void;
 };
 
+type NaverMarkerIcon = {
+  content: string;
+  anchor: { x: number; y: number };
+};
+
 type NaverMarker = {
   /** 마커를 표시할 지도이며 `null`을 전달하면 지도에서 제거한다. */
   setMap: (map: NaverMap | null) => void;
+  /** 마커 HTML과 기준점을 교체한다. */
+  setIcon: (icon: NaverMarkerIcon) => void;
+  /** 다른 마커와 겹칠 때 사용할 표시 우선순위를 변경한다. */
+  setZIndex: (zIndex: number) => void;
 };
 
 type NaverMapsSdk = {
@@ -134,12 +143,8 @@ type NaverMapsSdk = {
     /** 마커의 접근성 및 기본 설명에 사용하는 이름이다. */
     title: string;
     /** SDK가 렌더링할 사용자 정의 HTML 아이콘 설정이다. */
-    icon: {
-      /** 마커 모양으로 렌더링할 HTML 문자열이다. */
-      content: string;
-      /** 좌표 지점에 맞출 아이콘 내부 기준점이다. */
-      anchor: { x: number; y: number };
-    };
+    /** 마커 모양과 좌표 지점에 맞출 내부 기준점이다. */
+    icon: NaverMarkerIcon;
     /** 겹친 마커 사이의 표시 우선순위다. */
     zIndex: number;
   }) => NaverMarker;
@@ -389,10 +394,11 @@ export function createNaverMap(
     clickListener: NaverEventListener;
   }> = [];
   let selectedTrashBinId: string | null = null;
-  let trashBinMarkers: Array<{
+  const trashBinMarkers = new Map<string, {
     marker: NaverMarker;
     clickListener: NaverEventListener;
-  }> = [];
+    trashBin: TrashBin;
+  }>();
 
   const clearCurrentLocationMarker = () => {
     currentLocationMarker?.setMap(null);
@@ -413,7 +419,66 @@ export function createNaverMap(
       sdk.Event.removeListener(clickListener);
       marker.setMap(null);
     });
-    trashBinMarkers = [];
+    trashBinMarkers.clear();
+  };
+
+  const updateTrashBinMarkerAppearance = (trashBinId: string) => {
+    const entry = trashBinMarkers.get(trashBinId);
+
+    if (!entry) {
+      return;
+    }
+
+    const isSelected = trashBinId === selectedTrashBinId;
+    entry.marker.setIcon({
+      content: createTrashBinMarkerContent(
+        isSelected ? entry.trashBin.name : null,
+      ),
+      anchor: new sdk.Point(15, 15),
+    });
+    entry.marker.setZIndex(isSelected ? 80 : 40);
+  };
+
+  const addTrashBinMarker = (trashBin: TrashBin) => {
+    const isSelected = trashBin.trashBinId === selectedTrashBinId;
+    const marker = new sdk.Marker({
+      map,
+      position: new sdk.LatLng(
+        trashBin.coordinate.latitude,
+        trashBin.coordinate.longitude,
+      ),
+      title: `${trashBin.name}${trashBin.trashBinType ? ` · ${trashBin.trashBinType}` : ""}`,
+      icon: {
+        content: createTrashBinMarkerContent(
+          isSelected ? trashBin.name : null,
+        ),
+        anchor: new sdk.Point(15, 15),
+      },
+      zIndex: isSelected ? 80 : 40,
+    });
+    const clickListener = sdk.Event.addListener(marker, "click", () => {
+      // 1. 직전에 선택한 마커와 새 선택 마커의 모양만 변경한다.
+      // 나머지 마커를 다시 만들지 않아 이름을 열고 닫을 때도 깜빡임을 막는다.
+      const previousSelectedTrashBinId = selectedTrashBinId;
+      selectedTrashBinId =
+        previousSelectedTrashBinId === trashBin.trashBinId
+          ? null
+          : trashBin.trashBinId;
+
+      if (previousSelectedTrashBinId) {
+        updateTrashBinMarkerAppearance(previousSelectedTrashBinId);
+      }
+
+      if (selectedTrashBinId) {
+        updateTrashBinMarkerAppearance(selectedTrashBinId);
+      }
+    });
+
+    trashBinMarkers.set(trashBin.trashBinId, {
+      marker,
+      clickListener,
+      trashBin,
+    });
   };
 
   return {
@@ -534,48 +599,38 @@ export function createNaverMap(
       });
     },
     setTrashBins(trashBins) {
-      // 1. 새 지도 범위에 선택한 휴지통이 없다면 이름 표시를 해제한다.
-      // 화면 밖으로 이동한 마커의 선택 상태가 다른 범위에서 남는 것을 방지한다.
+      const nextTrashBinIds = new Set(
+        trashBins.map(({ trashBinId }) => trashBinId),
+      );
+
+      // 1. 새 지도 범위에서 빠진 마커와 이벤트만 제거한다.
+      // 공통 마커를 유지해 범위 조회가 갱신될 때 전체 마커가 깜빡이지 않게 한다.
+      trashBinMarkers.forEach(({ marker, clickListener }, trashBinId) => {
+        if (nextTrashBinIds.has(trashBinId)) {
+          return;
+        }
+
+        sdk.Event.removeListener(clickListener);
+        marker.setMap(null);
+        trashBinMarkers.delete(trashBinId);
+      });
+
+      // 2. 선택한 휴지통이 새 범위에서 빠졌다면 이름 표시 상태도 해제한다.
+      // 화면 밖 마커의 선택 상태가 다음 범위에 남는 것을 방지한다.
       if (
         selectedTrashBinId &&
-        !trashBins.some(({ trashBinId }) => trashBinId === selectedTrashBinId)
+        !nextTrashBinIds.has(selectedTrashBinId)
       ) {
         selectedTrashBinId = null;
       }
 
-      const renderTrashBinMarkers = () => {
-        // 2. 이전 마커와 이벤트를 제거한 뒤 현재 선택 상태를 반영해 다시 만든다.
-        // NAVER 마커의 HTML 아이콘을 단순하게 유지하면서 이름 표시를 즉시 갱신하기 위한 처리다.
-        clearTrashBinMarkers();
-        trashBinMarkers = trashBins.map((trashBin) => {
-          const isSelected = trashBin.trashBinId === selectedTrashBinId;
-          const marker = new sdk.Marker({
-            map,
-            position: new sdk.LatLng(
-              trashBin.coordinate.latitude,
-              trashBin.coordinate.longitude,
-            ),
-            title: `${trashBin.name}${trashBin.trashBinType ? ` · ${trashBin.trashBinType}` : ""}`,
-            icon: {
-              content: createTrashBinMarkerContent(
-                isSelected ? trashBin.name : null,
-              ),
-              anchor: new sdk.Point(15, 15),
-            },
-            zIndex: isSelected ? 80 : 40,
-          });
-          const clickListener = sdk.Event.addListener(marker, "click", () => {
-            // 3. 같은 마커를 다시 누르면 닫고, 다른 마커를 누르면 이름 표시를 옮긴다.
-            // 한 번에 하나의 이름만 노출해 좁은 모바일 지도에서도 겹침을 줄인다.
-            selectedTrashBinId = isSelected ? null : trashBin.trashBinId;
-            renderTrashBinMarkers();
-          });
-
-          return { marker, clickListener };
-        });
-      };
-
-      renderTrashBinMarkers();
+      // 3. 새 지도 범위에 들어온 마커만 추가한다.
+      // 이미 표시 중인 ID는 같은 NAVER 마커 인스턴스를 계속 재사용한다.
+      trashBins.forEach((trashBin) => {
+        if (!trashBinMarkers.has(trashBin.trashBinId)) {
+          addTrashBinMarker(trashBin);
+        }
+      });
     },
     resolveRegion(coordinate) {
       return new Promise((resolve, reject) => {

@@ -281,6 +281,13 @@ export function useTrafficMap() {
         : Promise.resolve([]),
     enabled: isTrashBinQueryEnabled,
     staleTime: 30 * 60_000,
+    placeholderData: (previousData, previousQuery) => {
+      // 4. 같은 데이터 버전에서 지도 범위만 바뀌면 이전 결과를 응답 전까지 유지한다.
+      // v1과 v2를 전환할 때는 서로 다른 출처의 마커가 잠시 섞이지 않도록 유지하지 않는다.
+      return previousQuery?.queryKey[1] === trashBinVersion
+        ? previousData
+        : undefined;
+    },
   });
 
   const handleSelectIntersection = useCallback(
