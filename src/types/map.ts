@@ -29,3 +29,5 @@ export type MapRegion = {
   /** 법정동 주소의 광역 시·도 이름이다. */
   area1Name: string;
 };
+
+export type MapLayer = "signals" | "trashBins";

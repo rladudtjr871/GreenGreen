@@ -1,5 +1,6 @@
 import type { Intersection } from "@/types/intersection";
 import type { MapBounds } from "@/types/map";
+import type { TrashBin, TrashBinDataVersion } from "@/types/trashBin";
 import type {
   PedestrianSignal,
   PedestrianSignalDirection,
@@ -17,6 +18,25 @@ function isIntersection(value: unknown): value is Intersection {
   return (
     typeof value.intersectionId === "string" &&
     typeof value.name === "string" &&
+    typeof value.coordinate.latitude === "number" &&
+    typeof value.coordinate.longitude === "number"
+  );
+}
+
+function isTrashBin(value: unknown): value is TrashBin {
+  if (!isRecord(value) || !isRecord(value.coordinate)) {
+    return false;
+  }
+
+  return (
+    typeof value.trashBinId === "string" &&
+    typeof value.name === "string" &&
+    typeof value.city === "string" &&
+    typeof value.district === "string" &&
+    typeof value.address === "string" &&
+    typeof value.detail === "string" &&
+    typeof value.trashBinType === "string" &&
+    typeof value.managingOrganization === "string" &&
     typeof value.coordinate.latitude === "number" &&
     typeof value.coordinate.longitude === "number"
   );
@@ -85,6 +105,31 @@ export async function fetchIntersections(
 
   if (!Array.isArray(payload) || !payload.every(isIntersection)) {
     throw new Error("교차로 응답 형식이 올바르지 않습니다.");
+  }
+
+  return payload;
+}
+
+export async function fetchTrashBins(
+  bounds: MapBounds,
+  version: TrashBinDataVersion,
+): Promise<TrashBin[]> {
+  // 1. 현재 지도 경계를 Route Handler 쿼리로 변환한다.
+  // 서버가 전국 스냅샷을 필터링하므로 브라우저에는 화면 안의 행만 전달된다.
+  const searchParams = new URLSearchParams({
+    north: String(bounds.north),
+    east: String(bounds.east),
+    south: String(bounds.south),
+    west: String(bounds.west),
+    version,
+  });
+
+  // 2. 응답 구조를 런타임에서도 검증해 손상된 마커 데이터가 지도에 전달되지 않게 한다.
+  const response = await fetch(`/api/trash-bins?${searchParams.toString()}`);
+  const payload = await parseApiResponse(response);
+
+  if (!Array.isArray(payload) || !payload.every(isTrashBin)) {
+    throw new Error("휴지통 응답 형식이 올바르지 않습니다.");
   }
 
   return payload;

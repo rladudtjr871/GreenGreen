@@ -9,6 +9,7 @@ import type {
   PedestrianSignalState,
   SignalDirection,
 } from "@/types/signal";
+import type { TrashBin } from "@/types/trashBin";
 
 const NAVER_MAP_SCRIPT_ID = "naver-maps-sdk";
 
@@ -201,6 +202,8 @@ export type NaverMapController = {
     selectedSignal: PedestrianSignal | null,
     onSelect: (intersection: Intersection) => void,
   ) => void;
+  /** 현재 조회 범위의 휴지통 마커를 지도에 동기화한다. */
+  setTrashBins: (trashBins: TrashBin[]) => void;
   /** 좌표를 법정동 기준 광역 지역 정보로 변환한다. */
   resolveRegion: (coordinate: MapCoordinate) => Promise<MapRegion | null>;
   /** 어댑터가 만든 이벤트, 마커, 지도 인스턴스를 정리한다. */
@@ -211,6 +214,34 @@ let sdkLoadingPromise: Promise<NaverMapsSdk> | null = null;
 
 function getNaverMapsSdk(): NaverMapsSdk | undefined {
   return (window as NaverWindow).naver?.maps;
+}
+
+function waitForNaverMapsGeocoder(): Promise<NaverMapsSdk> {
+  return new Promise((resolve, reject) => {
+    const deadline = Date.now() + 10_000;
+
+    const checkService = () => {
+      // 1. 본체 뒤에 비동기로 추가되는 Geocoder 모듈까지 준비됐는지 확인한다.
+      // maps.js의 load 이벤트만 기다리면 Service가 아직 없는 짧은 경쟁 상태가 생길 수 있다.
+      const sdk = getNaverMapsSdk();
+
+      if (sdk?.Service) {
+        resolve(sdk);
+        return;
+      }
+
+      // 2. 제한 시간 동안만 짧게 재확인한다.
+      // 설정 오류나 네트워크 실패 때 초기화 Promise가 영원히 대기하지 않도록 한다.
+      if (Date.now() >= deadline) {
+        reject(new Error("NAVER Maps Geocoder를 초기화하지 못했습니다."));
+        return;
+      }
+
+      window.setTimeout(checkService, 50);
+    };
+
+    checkService();
+  });
 }
 
 function createIntersectionMarkerContent(
@@ -250,12 +281,34 @@ function createIntersectionMarkerContent(
   return `<div style="position:relative;width:92px;height:92px"><div style="position:absolute;top:29px;left:29px">${trafficLight}</div>${crosswalkBars}</div>`;
 }
 
+function escapeMarkerText(value: string): string {
+  return value.replace(
+    /[&<>'"]/g,
+    (character) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "'": "&#39;",
+        '"': "&quot;",
+      })[character] ?? character,
+  );
+}
+
+function createTrashBinMarkerContent(name: string | null): string {
+  const label = name
+    ? `<span style="position:absolute;bottom:38px;left:50%;max-width:220px;padding:7px 10px;overflow:hidden;border:1px solid #d8dcda;border-radius:9px;background:rgba(255,255,255,.96);box-shadow:0 5px 16px rgba(42,48,45,.2);color:#333b37;font-size:12px;font-weight:700;line-height:1.35;text-overflow:ellipsis;white-space:nowrap;transform:translateX(-50%);pointer-events:none">${escapeMarkerText(name)}</span>`
+    : "";
+
+  return `<div style="position:relative;width:30px;height:30px">${label}<div aria-hidden="true" style="display:grid;width:30px;height:30px;place-items:center;border:3px solid white;border-radius:11px;background:#68716d;box-shadow:0 5px 14px rgba(43,50,46,.3)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"></path><path d="M9 7V4h6v3"></path><path d="M7 7l1 13h8l1-13"></path><path d="M10 11v5M14 11v5"></path></svg></div></div>`;
+}
+
 export function loadNaverMapsSdk(clientId: string): Promise<NaverMapsSdk> {
-  // 1. 이미 로드된 SDK가 있으면 같은 전역 객체를 재사용한다.
+  // 1. Geocoder까지 로드된 SDK가 있으면 같은 전역 객체를 재사용한다.
   // 페이지 전환이나 재마운트 때 스크립트를 중복 삽입하지 않기 위함이다.
   const loadedSdk = getNaverMapsSdk();
 
-  if (loadedSdk) {
+  if (loadedSdk?.Service) {
     return Promise.resolve(loadedSdk);
   }
 
@@ -267,15 +320,9 @@ export function loadNaverMapsSdk(clientId: string): Promise<NaverMapsSdk> {
 
   sdkLoadingPromise = new Promise<NaverMapsSdk>((resolve, reject) => {
     const handleLoad = () => {
-      const sdk = getNaverMapsSdk();
-
-      if (sdk) {
-        resolve(sdk);
-        return;
-      }
-
-      sdkLoadingPromise = null;
-      reject(new Error("NAVER Maps SDK를 초기화하지 못했습니다."));
+      // 3. NAVER가 본체 load 뒤에 삽입하는 Geocoder 스크립트까지 기다린다.
+      // Reverse Geocoding과 주소 변환이 초기 로드 속도에 따라 실패하지 않게 한다.
+      void waitForNaverMapsGeocoder().then(resolve).catch(handleError);
     };
 
     const handleError = () => {
@@ -283,7 +330,13 @@ export function loadNaverMapsSdk(clientId: string): Promise<NaverMapsSdk> {
       reject(new Error("NAVER Maps SDK를 불러오지 못했습니다."));
     };
 
-    // 3. 문서에 기존 스크립트가 있다면 완료 이벤트만 이어서 기다린다.
+    // 4. 본체는 로드됐지만 Geocoder만 준비 중이면 해당 모듈만 기다린다.
+    if (loadedSdk) {
+      void waitForNaverMapsGeocoder().then(resolve).catch(handleError);
+      return;
+    }
+
+    // 5. 문서에 기존 스크립트가 있다면 완료 이벤트만 이어서 기다린다.
     // 다른 렌더 경로가 먼저 태그를 추가했을 가능성을 안전하게 처리한다.
     const existingScript = document.getElementById(
       NAVER_MAP_SCRIPT_ID,
@@ -295,7 +348,7 @@ export function loadNaverMapsSdk(clientId: string): Promise<NaverMapsSdk> {
       return;
     }
 
-    // 4. 기존 태그가 없을 때만 새 스크립트를 삽입한다.
+    // 6. 기존 태그가 없을 때만 새 스크립트를 삽입한다.
     // Client ID는 URL 구성 요소이므로 인코딩해 쿼리 문자열을 보존한다.
     const script = document.createElement("script");
     script.id = NAVER_MAP_SCRIPT_ID;
@@ -335,6 +388,11 @@ export function createNaverMap(
     marker: NaverMarker;
     clickListener: NaverEventListener;
   }> = [];
+  let selectedTrashBinId: string | null = null;
+  let trashBinMarkers: Array<{
+    marker: NaverMarker;
+    clickListener: NaverEventListener;
+  }> = [];
 
   const clearCurrentLocationMarker = () => {
     currentLocationMarker?.setMap(null);
@@ -348,6 +406,14 @@ export function createNaverMap(
       marker.setMap(null);
     });
     intersectionMarkers = [];
+  };
+
+  const clearTrashBinMarkers = () => {
+    trashBinMarkers.forEach(({ marker, clickListener }) => {
+      sdk.Event.removeListener(clickListener);
+      marker.setMap(null);
+    });
+    trashBinMarkers = [];
   };
 
   return {
@@ -467,6 +533,50 @@ export function createNaverMap(
         return { marker, clickListener };
       });
     },
+    setTrashBins(trashBins) {
+      // 1. 새 지도 범위에 선택한 휴지통이 없다면 이름 표시를 해제한다.
+      // 화면 밖으로 이동한 마커의 선택 상태가 다른 범위에서 남는 것을 방지한다.
+      if (
+        selectedTrashBinId &&
+        !trashBins.some(({ trashBinId }) => trashBinId === selectedTrashBinId)
+      ) {
+        selectedTrashBinId = null;
+      }
+
+      const renderTrashBinMarkers = () => {
+        // 2. 이전 마커와 이벤트를 제거한 뒤 현재 선택 상태를 반영해 다시 만든다.
+        // NAVER 마커의 HTML 아이콘을 단순하게 유지하면서 이름 표시를 즉시 갱신하기 위한 처리다.
+        clearTrashBinMarkers();
+        trashBinMarkers = trashBins.map((trashBin) => {
+          const isSelected = trashBin.trashBinId === selectedTrashBinId;
+          const marker = new sdk.Marker({
+            map,
+            position: new sdk.LatLng(
+              trashBin.coordinate.latitude,
+              trashBin.coordinate.longitude,
+            ),
+            title: `${trashBin.name}${trashBin.trashBinType ? ` · ${trashBin.trashBinType}` : ""}`,
+            icon: {
+              content: createTrashBinMarkerContent(
+                isSelected ? trashBin.name : null,
+              ),
+              anchor: new sdk.Point(15, 15),
+            },
+            zIndex: isSelected ? 80 : 40,
+          });
+          const clickListener = sdk.Event.addListener(marker, "click", () => {
+            // 3. 같은 마커를 다시 누르면 닫고, 다른 마커를 누르면 이름 표시를 옮긴다.
+            // 한 번에 하나의 이름만 노출해 좁은 모바일 지도에서도 겹침을 줄인다.
+            selectedTrashBinId = isSelected ? null : trashBin.trashBinId;
+            renderTrashBinMarkers();
+          });
+
+          return { marker, clickListener };
+        });
+      };
+
+      renderTrashBinMarkers();
+    },
     resolveRegion(coordinate) {
       return new Promise((resolve, reject) => {
         const service = sdk.Service;
@@ -517,6 +627,7 @@ export function createNaverMap(
     destroy() {
       // 컴포넌트 해제 시 어댑터가 소유한 마커와 지도 인스턴스를 모두 정리한다.
       clearIntersectionMarkers();
+      clearTrashBinMarkers();
       clearCurrentLocationMarker();
       map.destroy?.();
     },

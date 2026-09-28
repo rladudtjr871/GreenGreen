@@ -14,6 +14,10 @@ export function TrafficMap() {
     isCurrentLocationActive,
     isCurrentLocationDisabled,
     handleCurrentLocation,
+    activeLayer,
+    trashBinVersion,
+    handleTrashBinVersionChange,
+    handleLayerChange,
     guide,
     serviceBadgeText,
     selectedIntersection,
@@ -27,7 +31,7 @@ export function TrafficMap() {
 
   return (
     <main className={styles.page}>
-      <section className={styles.mapShell} aria-label="서울 보행자 신호 지도">
+      <section className={styles.mapShell} aria-label="GreenGreen 생활 지도">
         <div className={styles.map}>
           <div ref={mapContainerRef} className={styles.mapCanvas} />
         </div>
@@ -61,11 +65,63 @@ export function TrafficMap() {
             </span>
             <div>
               <p className={styles.brandName}>GreenGreen</p>
-              <p className={styles.brandDescription}>서울 보행자 신호 지도</p>
+              <p className={styles.brandDescription}>보행자 신호 · 휴지통 지도</p>
             </div>
           </div>
+
           <span className={styles.serviceBadge}>{serviceBadgeText}</span>
+
+          <nav className={styles.layerTabs} aria-label="지도 정보 선택" role="tablist">
+            <button
+              type="button"
+              className={`${styles.layerTab} ${
+                activeLayer === "signals" ? styles.layerTabActive : ""
+              }`}
+              role="tab"
+              aria-selected={activeLayer === "signals"}
+              onClick={() => handleLayerChange("signals")}
+            >
+              신호등
+            </button>
+            <button
+              type="button"
+              className={`${styles.layerTab} ${
+                activeLayer === "trashBins" ? styles.layerTabActive : ""
+              }`}
+              role="tab"
+              aria-selected={activeLayer === "trashBins"}
+              onClick={() => handleLayerChange("trashBins")}
+            >
+              휴지통
+            </button>
+          </nav>
         </header>
+
+        {activeLayer === "trashBins" && (
+          <div className={styles.versionPanel}>
+            <label className={styles.versionControl}>
+              <span>데이터</span>
+              <select
+                value={trashBinVersion}
+                onChange={(event) =>
+                  handleTrashBinVersionChange(
+                    event.target.value === "v2" ? "v2" : "v1",
+                  )
+                }
+                aria-label="휴지통 데이터 버전"
+              >
+                <option value="v1">v1 · 전국 표준</option>
+                <option value="v2">v2 · 서울 2025.11</option>
+              </select>
+            </label>
+
+            {trashBinVersion === "v2" && (
+              <p className={styles.versionNotice} role="note">
+                주소 기반 변환 좌표로 실제 설치 위치와 다를 수 있습니다.
+              </p>
+            )}
+          </div>
+        )}
 
         {mapStatus === "loading" && (
           <div className={styles.mapMessage} role="status">

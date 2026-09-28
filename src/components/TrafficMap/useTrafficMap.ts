@@ -13,19 +13,23 @@ import {
   MAP_IDLE_DEBOUNCE_MS,
   SEOUL_CITY_HALL_COORDINATE,
   SEOUL_LEGAL_CODE_PREFIX,
+  TRASH_BIN_QUERY_MIN_ZOOM,
 } from "@/constants/map";
 import { SIGNAL_STALE_AFTER_MS } from "@/constants/signal";
 import {
   fetchIntersections,
   fetchPedestrianSignal,
+  fetchTrashBins,
 } from "@/services/greenGreenApi";
 import type { Intersection } from "@/types/intersection";
 import type {
   MapBounds,
   MapCoordinate,
+  MapLayer,
   MapRegion,
   MapViewport,
 } from "@/types/map";
+import type { TrashBinDataVersion } from "@/types/trashBin";
 
 type MapStatus = "loading" | "ready" | "error";
 type LocationStatus = "idle" | "locating" | "error";
@@ -82,6 +86,9 @@ export function useTrafficMap() {
     NAVER_MAP_CLIENT_ID ? "" : MISSING_CLIENT_ID_MESSAGE,
   );
   const [viewport, setViewport] = useState<MapViewport | null>(null);
+  const [activeLayer, setActiveLayer] = useState<MapLayer>("signals");
+  const [trashBinVersion, setTrashBinVersion] =
+    useState<TrashBinDataVersion>("v1");
   const [selectedIntersection, setSelectedIntersection] =
     useState<Intersection | null>(null);
   const [locationStatus, setLocationStatus] =
@@ -239,6 +246,7 @@ export function useTrafficMap() {
   // 1. 지도 준비 여부와 줌 임계값을 먼저 확인한다.
   // 범위 쿼리를 비활성화해 멀리서 불필요한 교차로 데이터를 가져오지 않는다.
   const isIntersectionQueryEnabled =
+    activeLayer === "signals" &&
     mapStatus === "ready" &&
     (serviceAreaStatus === "supported" || serviceAreaStatus === "unknown") &&
     viewport !== null &&
@@ -254,6 +262,25 @@ export function useTrafficMap() {
     enabled: isIntersectionQueryEnabled,
     staleTime: 5 * 60_000,
     placeholderData: keepPreviousData,
+  });
+
+  const isTrashBinQueryEnabled =
+    activeLayer === "trashBins" &&
+    mapStatus === "ready" &&
+    viewport !== null &&
+    viewport.zoom >= TRASH_BIN_QUERY_MIN_ZOOM &&
+    normalizedBounds !== null;
+
+  const trashBinsQuery = useQuery({
+    // 3. 휴지통 탭과 줌 조건을 만족할 때만 현재 범위의 정적 위치를 조회한다.
+    // 비활성 레이어의 API 호출과 보이지 않는 마커 생성을 함께 막는다.
+    queryKey: ["trashBins", trashBinVersion, normalizedBounds],
+    queryFn: () =>
+      normalizedBounds
+        ? fetchTrashBins(normalizedBounds, trashBinVersion)
+        : Promise.resolve([]),
+    enabled: isTrashBinQueryEnabled,
+    staleTime: 30 * 60_000,
   });
 
   const handleSelectIntersection = useCallback(
@@ -307,7 +334,12 @@ export function useTrafficMap() {
       Date.now() - receivedTime <= SIGNAL_STALE_AFTER_MS;
     const visibleSignal = isSignalFresh ? signal : null;
 
-    // 4. 교차로와 선택 신호를 함께 전달해 선택 마커의 방향 상태를 갱신한다.
+    const visibleTrashBins = isTrashBinQueryEnabled
+      ? (trashBinsQuery.data ?? [])
+      : [];
+
+    // 4. 활성 탭에 해당하는 마커만 전달하고 다른 레이어는 빈 배열로 즉시 비운다.
+    // 탭 전환 뒤 두 종류의 마커가 겹치거나 비활성 데이터가 남는 것을 방지한다.
     // 줌이 임계값 아래이거나 신호가 오래되면 방향 강조를 즉시 제거한다.
     controller.setIntersections(
       visibleIntersections,
@@ -315,6 +347,7 @@ export function useTrafficMap() {
       visibleSignal,
       handleSelectIntersection,
     );
+    controller.setTrashBins(visibleTrashBins);
 
     if (!visibleSignal) {
       return;
@@ -337,7 +370,9 @@ export function useTrafficMap() {
     handleSelectIntersection,
     intersectionsQuery.data,
     isIntersectionQueryEnabled,
+    isTrashBinQueryEnabled,
     signalQuery.data,
+    trashBinsQuery.data,
   ]);
 
   const handleCurrentLocation = useCallback(() => {
@@ -388,12 +423,15 @@ export function useTrafficMap() {
   }, []);
 
   const intersections = intersectionsQuery.data ?? [];
+  const trashBins = trashBinsQuery.data ?? [];
   const intersectionErrorMessage =
     intersectionsQuery.error instanceof Error
       ? intersectionsQuery.error.message
       : "";
   const signalErrorMessage =
     signalQuery.error instanceof Error ? signalQuery.error.message : "";
+  const trashBinErrorMessage =
+    trashBinsQuery.error instanceof Error ? trashBinsQuery.error.message : "";
 
   let guide = {
     eyebrow: `ZOOM! ZOOM!`,
@@ -402,9 +440,39 @@ export function useTrafficMap() {
       "신호 제공 교차로를 정확하게 표시하기 위해 가까운 지도에서만 정보를 불러옵니다.",
   };
 
-  // 조회 가능 여부를 먼저 본 뒤 로딩, 오류, 빈 결과, 성공 순으로 안내한다.
+  // 활성 레이어의 조회 가능 여부를 먼저 본 뒤 로딩, 오류, 빈 결과, 성공 순으로 안내한다.
   // 동시에 여러 상태가 참이어도 사용자에게 가장 우선적인 상태 하나만 보여준다.
-  if (serviceAreaStatus === "checking") {
+  if (activeLayer === "trashBins" && isTrashBinQueryEnabled && trashBinsQuery.isLoading) {
+    guide = {
+      eyebrow: "휴지통 확인 중",
+      title: "주변 휴지통을 찾고 있어요",
+      description: "현재 지도 범위에 등록된 공공 휴지통 위치를 확인하고 있습니다.",
+    };
+  } else if (activeLayer === "trashBins" && isTrashBinQueryEnabled && trashBinErrorMessage) {
+    guide = {
+      eyebrow: "조회 지연",
+      title: "휴지통 정보를 가져오지 못했어요",
+      description: trashBinErrorMessage,
+    };
+  } else if (activeLayer === "trashBins" && isTrashBinQueryEnabled && trashBins.length === 0) {
+    guide = {
+      eyebrow: "등록 정보 없음",
+      title: "이 범위에는 등록된 휴지통이 없어요",
+      description: "지도를 이동해 다른 지역의 공공 휴지통을 확인해 보세요.",
+    };
+  } else if (activeLayer === "trashBins" && isTrashBinQueryEnabled) {
+    guide = {
+      eyebrow: `${trashBins.length}개 휴지통`,
+      title: "주변 휴지통 위치를 확인해 보세요",
+      description: "회색 휴지통 마커는 공공데이터에 등록된 설치 위치입니다.",
+    };
+  } else if (activeLayer === "trashBins") {
+    guide = {
+      eyebrow: "ZOOM! ZOOM!",
+      title: "지도를 조금 더 확대해 주세요",
+      description: `휴지통 위치는 지도 확대 단계 ${TRASH_BIN_QUERY_MIN_ZOOM}부터 표시됩니다.`,
+    };
+  } else if (serviceAreaStatus === "checking") {
     guide = {
       eyebrow: "서비스 지역 확인 중",
       title: "현재 지도 지역을 확인하고 있어요",
@@ -445,7 +513,13 @@ export function useTrafficMap() {
   }
 
   const serviceBadgeText =
-    serviceAreaStatus === "checking"
+    activeLayer === "trashBins"
+      ? !isTrashBinQueryEnabled
+        ? "ZOOM! ZOOM!"
+        : trashBinsQuery.isFetching
+          ? "휴지통 확인 중"
+          : `${trashBins.length}개 휴지통`
+      : serviceAreaStatus === "checking"
       ? "지역 확인 중"
         : serviceAreaStatus === "unsupported"
           ? "서비스 준비 중"
@@ -465,6 +539,19 @@ export function useTrafficMap() {
     isCurrentLocationDisabled:
       mapStatus !== "ready" || locationStatus === "locating",
     handleCurrentLocation,
+    activeLayer,
+    trashBinVersion,
+    handleTrashBinVersionChange: setTrashBinVersion,
+    handleLayerChange: (layer: MapLayer) => {
+      // 1. 신호 레이어를 떠날 때 선택 교차로를 먼저 해제한다.
+      // 보이지 않는 신호 Query와 타이머 팝업이 계속 동작하는 것을 막기 위한 순서다.
+      if (layer !== "signals") {
+        setSelectedIntersection(null);
+      }
+
+      // 2. 활성 레이어를 바꾸면 각 Query와 마커 동기화 효과가 한 종류만 남긴다.
+      setActiveLayer(layer);
+    },
     guide,
     serviceBadgeText,
     selectedIntersection: activeSelectedIntersection,
