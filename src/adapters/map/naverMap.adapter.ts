@@ -334,17 +334,23 @@ function createRestroomMarkerContent(isSelected: boolean): string {
 function createCurrentLocationMarkerContent(
   heading: number | null | undefined,
 ): string {
-  // 1. 브라우저가 유효한 이동 방향을 제공하면 북쪽 기준 화살표를 회전한다.
-  // heading은 이동 중에만 제공될 수 있으므로 0~360도 범위로 정규화한다.
-  if (typeof heading === "number" && Number.isFinite(heading)) {
-    const normalizedHeading = ((heading % 360) + 360) % 360;
+  // 1. 방향값을 0~360도 범위로 정규화한다.
+  // 센서에 따라 음수나 360도 이상의 값이 들어와도 레이더 영역이 같은 방향을 가리키게 한다.
+  const normalizedHeading =
+    typeof heading === "number" && Number.isFinite(heading)
+      ? ((heading % 360) + 360) % 360
+      : null;
 
-    return `<div aria-hidden="true" style="display:grid;width:38px;height:38px;place-items:center;transform:rotate(${normalizedHeading}deg)"><svg width="38" height="38" viewBox="0 0 38 38"><path d="M19 2 30 29 19 24 8 29Z" fill="#03c75a" stroke="white" stroke-width="3" stroke-linejoin="round" style="filter:drop-shadow(0 3px 5px rgba(0,0,0,.3))"></path><circle cx="19" cy="20" r="4" fill="white"></circle></svg></div>`;
-  }
+  // 2. 마커 크기와 중심점은 방향 유무와 관계없이 고정한다.
+  // 방향 센서가 잠시 값을 주지 않아도 현재 위치 점이 지도 위에서 튀지 않도록 하기 위함이다.
+  const headingSector =
+    normalizedHeading === null
+      ? ""
+      : `<g transform="rotate(${normalizedHeading} 36 36)"><path d="M36 36 13 7A38 38 0 0 1 59 7Z" fill="url(#current-location-heading-gradient)" stroke="rgba(3,199,90,.18)" stroke-width="1"></path></g>`;
 
-  // 2. 정지 상태처럼 방향값이 없으면 위치만 나타내는 기존 원형 마커를 사용한다.
-  // 지원하지 않는 기기에서도 위치 고정 기능 자체는 그대로 사용할 수 있다.
-  return '<div aria-hidden="true" style="width:22px;height:22px;border:4px solid white;border-radius:50%;background:#03c75a;box-shadow:0 2px 10px rgba(0,0,0,.28)"></div>';
+  // 3. 반투명 부채꼴을 먼저 그리고 기존 원형 위치 핀을 그 위에 유지한다.
+  // 사용자는 위치와 시야 방향을 동시에 확인할 수 있고, 방향값이 없으면 원형 핀만 보인다.
+  return `<div aria-hidden="true" style="width:72px;height:72px;pointer-events:none"><svg width="72" height="72" viewBox="0 0 72 72" overflow="visible"><defs><linearGradient id="current-location-heading-gradient" x1="36" y1="36" x2="36" y2="3" gradientUnits="userSpaceOnUse"><stop stop-color="#03c75a" stop-opacity=".42"></stop><stop offset="1" stop-color="#03c75a" stop-opacity=".06"></stop></linearGradient></defs>${headingSector}<circle cx="36" cy="36" r="11" fill="white" style="filter:drop-shadow(0 2px 5px rgba(0,0,0,.28))"></circle><circle cx="36" cy="36" r="7" fill="#03c75a"></circle></svg></div>`;
 }
 
 export function loadNaverMapsSdk(clientId: string): Promise<NaverMapsSdk> {
@@ -589,10 +595,7 @@ export function createNaverMap(
         title: "현재 위치",
         icon: {
           content: createCurrentLocationMarkerContent(heading),
-          anchor: new sdk.Point(
-            typeof heading === "number" && Number.isFinite(heading) ? 19 : 15,
-            typeof heading === "number" && Number.isFinite(heading) ? 19 : 15,
-          ),
+          anchor: new sdk.Point(36, 36),
         },
         zIndex: 100,
       });
@@ -604,10 +607,9 @@ export function createNaverMap(
 
       // 1. 좌표나 지도 중심은 건드리지 않고 마커 아이콘만 회전시킨다.
       // 방향 센서의 잦은 이벤트가 불필요한 지도 이동으로 이어지지 않게 한다.
-      const hasHeading = Number.isFinite(heading);
       currentLocationMarker.setIcon({
         content: createCurrentLocationMarkerContent(heading),
-        anchor: new sdk.Point(hasHeading ? 19 : 15, hasHeading ? 19 : 15),
+        anchor: new sdk.Point(36, 36),
       });
     },
     clearCurrentLocation() {
