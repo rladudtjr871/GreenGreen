@@ -194,12 +194,20 @@ type NaverWindow = Window &
 
 export type NaverMapController = {
   /** 지도를 지정 좌표로 이동하고 현재 위치 마커를 갱신한다. */
-  moveTo: (coordinate: MapCoordinate) => void;
+  moveTo: (
+    coordinate: MapCoordinate,
+    updateZoom?: boolean,
+    heading?: number | null,
+  ) => void;
+  /** 현재 위치를 유지한 채 마커의 방향 표현만 갱신한다. */
+  setCurrentLocationHeading: (heading: number | null) => void;
+  /** 현재 위치 마커를 지도에서 제거한다. */
+  clearCurrentLocation: () => void;
   /** SDK 좌표를 프로젝트의 현재 화면 범위와 줌 타입으로 반환한다. */
   getViewport: () => MapViewport;
   /** 지도 이동이 끝난 시점을 구독하며 반환 함수로 구독을 해제한다. */
   onIdle: (listener: () => void) => () => void;
-  /** 사용자가 지도를 직접 드래그한 시점을 구독하며 현재 위치 표시를 함께 해제한다. */
+  /** 사용자가 지도를 직접 이동하거나 확대·축소한 시점을 구독한다. */
   onUserMove: (listener: () => void) => () => void;
   /** 현재 조회 범위의 교차로 마커와 선택 상태를 지도에 동기화한다. */
   setIntersections: (
@@ -321,6 +329,22 @@ function createRestroomMarkerContent(isSelected: boolean): string {
   const iconSize = isSelected ? 22 : 19;
 
   return `<div aria-hidden="true" style="display:grid;width:${size}px;height:${size}px;place-items:center;border:3px solid white;border-radius:11px;background:${background};box-shadow:0 5px 14px rgba(28,64,99,.32)"><svg width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24" fill="white"><circle cx="6.5" cy="4.5" r="2.2"></circle><path d="M3.2 9.2c0-1.5 1.2-2.7 2.7-2.7h1.2c1.5 0 2.7 1.2 2.7 2.7v3.9H8.5V21h-4v-7.9H3.2V9.2Z"></path><circle cx="17.5" cy="4.5" r="2.2"></circle><path d="M14.8 9.1c.2-1.5 1.3-2.6 2.7-2.6s2.5 1.1 2.7 2.6l1.1 7h-2V21h-3.6v-4.9h-2l1.1-7Z"></path><rect x="11.35" y="3" width="1.3" height="18" rx=".65" opacity=".72"></rect></svg></div>`;
+}
+
+function createCurrentLocationMarkerContent(
+  heading: number | null | undefined,
+): string {
+  // 1. 브라우저가 유효한 이동 방향을 제공하면 북쪽 기준 화살표를 회전한다.
+  // heading은 이동 중에만 제공될 수 있으므로 0~360도 범위로 정규화한다.
+  if (typeof heading === "number" && Number.isFinite(heading)) {
+    const normalizedHeading = ((heading % 360) + 360) % 360;
+
+    return `<div aria-hidden="true" style="display:grid;width:38px;height:38px;place-items:center;transform:rotate(${normalizedHeading}deg)"><svg width="38" height="38" viewBox="0 0 38 38"><path d="M19 2 30 29 19 24 8 29Z" fill="#03c75a" stroke="white" stroke-width="3" stroke-linejoin="round" style="filter:drop-shadow(0 3px 5px rgba(0,0,0,.3))"></path><circle cx="19" cy="20" r="4" fill="white"></circle></svg></div>`;
+  }
+
+  // 2. 정지 상태처럼 방향값이 없으면 위치만 나타내는 기존 원형 마커를 사용한다.
+  // 지원하지 않는 기기에서도 위치 고정 기능 자체는 그대로 사용할 수 있다.
+  return '<div aria-hidden="true" style="width:22px;height:22px;border:4px solid white;border-radius:50%;background:#03c75a;box-shadow:0 2px 10px rgba(0,0,0,.28)"></div>';
 }
 
 export function loadNaverMapsSdk(clientId: string): Promise<NaverMapsSdk> {
@@ -541,7 +565,7 @@ export function createNaverMap(
   };
 
   return {
-    moveTo(coordinate) {
+    moveTo(coordinate, updateZoom = true, heading = null) {
       // 1. 프로젝트 좌표를 NAVER 좌표로 변환한 뒤 지도를 이동한다.
       const position = new sdk.LatLng(
         coordinate.latitude,
@@ -549,9 +573,14 @@ export function createNaverMap(
       );
 
       map.setCenter(position);
-      map.setZoom(CURRENT_LOCATION_ZOOM, true);
 
-      // 2. 이전 현재 위치 마커를 제거한 뒤 새 위치에 하나만 표시한다.
+      // 2. 최초 현재 위치 이동에서만 권장 줌을 적용한다.
+      // 위치 고정 중 GPS가 갱신될 때 사용자가 보고 있던 줌이 반복해서 초기화되지 않게 한다.
+      if (updateZoom) {
+        map.setZoom(CURRENT_LOCATION_ZOOM, true);
+      }
+
+      // 3. 이전 현재 위치 마커를 제거한 뒤 새 위치에 하나만 표시한다.
       // 위치 요청을 반복해도 마커가 지도에 쌓이지 않게 하기 위함이다.
       clearCurrentLocationMarker();
       currentLocationMarker = new sdk.Marker({
@@ -559,12 +588,30 @@ export function createNaverMap(
         position,
         title: "현재 위치",
         icon: {
-          content:
-            '<div aria-hidden="true" style="width:22px;height:22px;border:4px solid white;border-radius:50%;background:#03c75a;box-shadow:0 2px 10px rgba(0,0,0,.28)"></div>',
-          anchor: new sdk.Point(15, 15),
+          content: createCurrentLocationMarkerContent(heading),
+          anchor: new sdk.Point(
+            typeof heading === "number" && Number.isFinite(heading) ? 19 : 15,
+            typeof heading === "number" && Number.isFinite(heading) ? 19 : 15,
+          ),
         },
         zIndex: 100,
       });
+    },
+    setCurrentLocationHeading(heading) {
+      if (!currentLocationMarker) {
+        return;
+      }
+
+      // 1. 좌표나 지도 중심은 건드리지 않고 마커 아이콘만 회전시킨다.
+      // 방향 센서의 잦은 이벤트가 불필요한 지도 이동으로 이어지지 않게 한다.
+      const hasHeading = Number.isFinite(heading);
+      currentLocationMarker.setIcon({
+        content: createCurrentLocationMarkerContent(heading),
+        anchor: new sdk.Point(hasHeading ? 19 : 15, hasHeading ? 19 : 15),
+      });
+    },
+    clearCurrentLocation() {
+      clearCurrentLocationMarker();
     },
     getViewport() {
       // SDK 경계 객체를 즉시 프로젝트 타입으로 변환해 외부로 노출하지 않는다.
@@ -594,7 +641,7 @@ export function createNaverMap(
           return;
         }
 
-        // 2. 마우스 드래그, 한 손가락 이동, 두 손가락 확대·축소가 시작되면 현재 위치 점을 제거한다.
+        // 2. 드래그 또는 확대·축소가 시작되면 현재 위치 점을 제거한다.
         // GPS 좌표에 맞춰진 상태가 더는 아니므로 지도 표시부터 원래 상태로 되돌린다.
         clearCurrentLocationMarker();
 
@@ -606,10 +653,17 @@ export function createNaverMap(
         (eventName) => sdk.Event.addListener(map, eventName, handleUserMove),
       );
 
+      // 4. SDK 지도 이벤트에서 구분하기 어려운 휠·더블클릭 확대도 DOM 입력 시점에 감지한다.
+      // 프로그램이 위치를 따라가며 setCenter를 호출하는 동작은 사용자 조작으로 오인하지 않는다.
+      container.addEventListener("wheel", handleUserMove, { passive: true });
+      container.addEventListener("dblclick", handleUserMove);
+
       return () => {
         eventListeners.forEach((eventListener) => {
           sdk.Event.removeListener(eventListener);
         });
+        container.removeEventListener("wheel", handleUserMove);
+        container.removeEventListener("dblclick", handleUserMove);
       };
     },
     setIntersections(

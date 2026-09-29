@@ -35,6 +35,14 @@ import type { Restroom } from "@/types/restroom";
 
 type MapStatus = "loading" | "ready" | "error";
 type LocationStatus = "idle" | "locating" | "error";
+type LocationMode = "inactive" | "current" | "tracking";
+type CompassOrientationEvent = DeviceOrientationEvent & {
+  webkitCompassHeading?: number;
+  webkitCompassAccuracy?: number;
+};
+type DeviceOrientationEventWithPermission = typeof DeviceOrientationEvent & {
+  requestPermission?: (absolute?: boolean) => Promise<"granted" | "denied">;
+};
 type ServiceAreaStatus =
   | "checking"
   | "supported"
@@ -51,6 +59,64 @@ const LOCATION_ERROR_MESSAGES: Record<number, string> = {
   2: "현재 위치를 확인할 수 없습니다. 잠시 후 다시 시도해 주세요.",
   3: "위치 확인 시간이 초과되었습니다. 다시 시도해 주세요.",
 };
+
+function normalizeHeading(heading: number): number {
+  return ((heading % 360) + 360) % 360;
+}
+
+function getDeviceHeading(event: CompassOrientationEvent): number | null {
+  // 1. iOS Safari가 제공하는 실제 나침반 방향을 우선 사용한다.
+  // webkitCompassHeading은 북쪽 0도에서 시계 방향으로 증가해 마커 회전에 바로 사용할 수 있다.
+  if (
+    typeof event.webkitCompassHeading === "number" &&
+    Number.isFinite(event.webkitCompassHeading) &&
+    (event.webkitCompassAccuracy === undefined ||
+      event.webkitCompassAccuracy >= 0)
+  ) {
+    return normalizeHeading(event.webkitCompassHeading);
+  }
+
+  // 2. 표준 절대 방향 이벤트가 아니거나 alpha가 없으면 방향을 추측하지 않는다.
+  // 상대 방향의 alpha는 페이지가 열린 자세를 기준으로 하므로 실제 북쪽과 맞지 않는다.
+  if (
+    event.alpha === null ||
+    (!event.absolute && event.type !== "deviceorientationabsolute")
+  ) {
+    return null;
+  }
+
+  // 3. 기울기 정보가 없거나 기기를 평평하게 둔 경우 alpha만 나침반 방향으로 변환한다.
+  // 이 경우 표준 좌표계에서 실제 방위각은 360도에서 alpha를 뺀 값이다.
+  if (
+    event.beta === null ||
+    event.gamma === null ||
+    (Math.abs(event.beta) < 1 && Math.abs(event.gamma) < 1)
+  ) {
+    return normalizeHeading(360 - event.alpha);
+  }
+
+  // 4. 기울여 든 기기는 W3C 예제의 회전 행렬로 화면 정면의 수평 방위를 계산한다.
+  // alpha만 사용할 때 발생하는 세로로 든 휴대폰의 방향 오차를 줄이기 위한 처리다.
+  const degreesToRadians = Math.PI / 180;
+  const alpha = event.alpha * degreesToRadians;
+  const beta = event.beta * degreesToRadians;
+  const gamma = event.gamma * degreesToRadians;
+  const vectorX =
+    -Math.cos(alpha) * Math.sin(gamma) -
+    Math.sin(alpha) * Math.sin(beta) * Math.cos(gamma);
+  const vectorY =
+    -Math.sin(alpha) * Math.sin(gamma) +
+    Math.cos(alpha) * Math.sin(beta) * Math.cos(gamma);
+
+  return normalizeHeading(
+    Math.atan2(vectorX, vectorY) / degreesToRadians,
+  );
+}
+
+function getHeadingDifference(previous: number, next: number): number {
+  const difference = Math.abs(previous - next);
+  return Math.min(difference, 360 - difference);
+}
 
 function normalizeCoordinate(value: number): number {
   // 좌표의 미세한 변화마다 새 Query Key가 생기지 않도록 약 10m 단위로 맞춘다.
@@ -82,6 +148,13 @@ function getRegionCacheKey(coordinate: MapCoordinate): string {
 export function useTrafficMap() {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapControllerRef = useRef<NaverMapController | null>(null);
+  const locationModeRef = useRef<LocationMode>("inactive");
+  const geolocationWatchIdRef = useRef<number | null>(null);
+  const deviceOrientationCleanupRef = useRef<(() => void) | null>(null);
+  const orientationFrameRef = useRef<number | null>(null);
+  const pendingDeviceHeadingRef = useRef<number | null>(null);
+  const deviceHeadingRef = useRef<number | null>(null);
+  const renderedDeviceHeadingRef = useRef<number | null>(null);
   const [mapStatus, setMapStatus] = useState<MapStatus>(
     NAVER_MAP_CLIENT_ID ? "loading" : "error",
   );
@@ -97,11 +170,121 @@ export function useTrafficMap() {
   const [locationStatus, setLocationStatus] =
     useState<LocationStatus>("idle");
   const [locationMessage, setLocationMessage] = useState("");
-  const [currentLocationCoordinate, setCurrentLocationCoordinate] =
-    useState<MapCoordinate | null>(null);
+  const [locationMode, setLocationMode] =
+    useState<LocationMode>("inactive");
   const [serviceAreaStatus, setServiceAreaStatus] =
     useState<ServiceAreaStatus>("checking");
   const [unsupportedRegionName, setUnsupportedRegionName] = useState("");
+
+  const updateLocationMode = useCallback((mode: LocationMode) => {
+    // 상태와 ref를 같은 시점에 갱신해 비동기 위치 콜백도 최신 모드를 확인하게 한다.
+    locationModeRef.current = mode;
+    setLocationMode(mode);
+  }, []);
+
+  const stopDeviceOrientationTracking = useCallback(() => {
+    // 1. 등록한 방향 이벤트를 해제해 고정 모드 밖에서 센서를 계속 사용하지 않게 한다.
+    deviceOrientationCleanupRef.current?.();
+    deviceOrientationCleanupRef.current = null;
+
+    // 2. 예약된 화면 갱신을 취소하고 센서 방향 캐시를 초기화한다.
+    // 다음 고정 시작 때 이전 기기 방향이 GPS 이동 방향보다 먼저 표시되지 않게 한다.
+    if (orientationFrameRef.current !== null) {
+      window.cancelAnimationFrame(orientationFrameRef.current);
+      orientationFrameRef.current = null;
+    }
+    pendingDeviceHeadingRef.current = null;
+    deviceHeadingRef.current = null;
+    renderedDeviceHeadingRef.current = null;
+  }, []);
+
+  const startDeviceOrientationTracking = useCallback(async () => {
+    if (!("DeviceOrientationEvent" in window)) {
+      return;
+    }
+
+    const orientationEventConstructor = window.DeviceOrientationEvent as
+      DeviceOrientationEventWithPermission;
+
+    // 1. iOS처럼 명시적 권한이 필요한 브라우저는 버튼 클릭 흐름 안에서 요청한다.
+    // 거부되거나 요청에 실패해도 GPS 이동 방향 추적은 계속 사용할 수 있게 조용히 대체한다.
+    if (orientationEventConstructor.requestPermission) {
+      try {
+        const permission =
+          await orientationEventConstructor.requestPermission(true);
+
+        if (permission !== "granted") {
+          return;
+        }
+      } catch {
+        return;
+      }
+    }
+
+    if (locationModeRef.current !== "tracking") {
+      return;
+    }
+
+    const handleOrientation = (event: DeviceOrientationEvent) => {
+      const heading = getDeviceHeading(event as CompassOrientationEvent);
+
+      if (heading === null || locationModeRef.current !== "tracking") {
+        return;
+      }
+
+      pendingDeviceHeadingRef.current = heading;
+
+      if (orientationFrameRef.current !== null) {
+        return;
+      }
+
+      // 2. 센서 이벤트를 애니메이션 프레임당 한 번으로 제한한다.
+      // 고주파 센서 이벤트마다 NAVER 마커 DOM을 교체해 렌더링이 과도해지는 것을 막는다.
+      orientationFrameRef.current = window.requestAnimationFrame(() => {
+        orientationFrameRef.current = null;
+        const nextHeading = pendingDeviceHeadingRef.current;
+
+        if (nextHeading === null || locationModeRef.current !== "tracking") {
+          return;
+        }
+
+        const previousHeading = renderedDeviceHeadingRef.current;
+
+        // 3. 3도 미만의 작은 흔들림은 무시해 마커가 제자리에서 떨리는 현상을 줄인다.
+        // 0도와 360도 경계를 지날 때도 가장 짧은 각도 차이를 기준으로 비교한다.
+        if (
+          previousHeading !== null &&
+          getHeadingDifference(previousHeading, nextHeading) < 3
+        ) {
+          return;
+        }
+
+        deviceHeadingRef.current = nextHeading;
+        renderedDeviceHeadingRef.current = nextHeading;
+        mapControllerRef.current?.setCurrentLocationHeading(nextHeading);
+      });
+    };
+
+    // 4. 표준 절대 방향 이벤트와 iOS 호환 이벤트를 함께 구독한다.
+    // 실제 북쪽 기준 값만 getDeviceHeading에서 선별하므로 상대 방향은 표시하지 않는다.
+    window.addEventListener("deviceorientationabsolute", handleOrientation);
+    window.addEventListener("deviceorientation", handleOrientation);
+    deviceOrientationCleanupRef.current = () => {
+      window.removeEventListener("deviceorientationabsolute", handleOrientation);
+      window.removeEventListener("deviceorientation", handleOrientation);
+    };
+  }, []);
+
+  const stopLocationTracking = useCallback(() => {
+    // 1. 활성 watch만 해제해 중복 구독과 해제 이후의 위치 콜백을 방지한다.
+    if (geolocationWatchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(geolocationWatchIdRef.current);
+      geolocationWatchIdRef.current = null;
+    }
+
+    // 2. 위치 고정과 함께 시작한 방향 센서 구독도 같은 생명주기로 정리한다.
+    stopDeviceOrientationTracking();
+  }, [stopDeviceOrientationTracking]);
 
   useEffect(() => {
     let cancelled = false;
@@ -211,7 +394,12 @@ export function useTrafficMap() {
         // 첫 idle 이벤트를 기다리지 않아도 현재 줌에 맞는 안내와 조회가 시작된다.
         removeIdleListener = controller.onIdle(updateViewport);
         removeUserMoveListener = controller.onUserMove(() => {
-          setCurrentLocationCoordinate(null);
+          // 사용자가 지도를 직접 조작하면 1회 위치와 고정 추적을 모두 해제한다.
+          // 지도 중심이 GPS와 다르게 이동한 상태를 활성 위치 모드로 표시하지 않기 위함이다.
+          stopLocationTracking();
+          updateLocationMode("inactive");
+          setLocationStatus("idle");
+          setLocationMessage("");
         });
         void updateViewportAndRegion();
         setMapStatus("ready");
@@ -237,10 +425,11 @@ export function useTrafficMap() {
       window.clearTimeout(debounceTimer);
       removeIdleListener?.();
       removeUserMoveListener?.();
+      stopLocationTracking();
       mapControllerRef.current?.destroy();
       mapControllerRef.current = null;
     };
-  }, []);
+  }, [stopLocationTracking, updateLocationMode]);
 
   const normalizedBounds = useMemo(
     () => (viewport ? normalizeBounds(viewport.bounds) : null),
@@ -433,16 +622,71 @@ export function useTrafficMap() {
       return;
     }
 
-    if (!mapControllerRef.current) {
+    const controller = mapControllerRef.current;
+
+    if (!controller) {
       return;
     }
 
+    // 2. 위치 고정 상태에서 누르면 추적과 마커를 모두 해제한다.
+    // 세 번째 클릭으로 명시적으로 비활성 상태로 돌아가는 순환을 만든다.
+    if (locationModeRef.current === "tracking") {
+      stopLocationTracking();
+      controller.clearCurrentLocation();
+      updateLocationMode("inactive");
+      setLocationStatus("idle");
+      setLocationMessage("");
+      return;
+    }
+
+    const handlePositionError = ({ code }: GeolocationPositionError) => {
+      stopLocationTracking();
+      controller.clearCurrentLocation();
+      updateLocationMode("inactive");
+      setLocationStatus("error");
+      setLocationMessage(
+        LOCATION_ERROR_MESSAGES[code] ??
+          "현재 위치를 확인하는 중 문제가 발생했습니다.",
+      );
+    };
+
+    // 3. 현재 위치 상태에서 한 번 더 누르면 실시간 위치 고정을 시작한다.
+    // watchPosition의 새 좌표마다 줌은 유지하고 중심과 위치 마커만 갱신한다.
+    if (locationModeRef.current === "current") {
+      setLocationStatus("idle");
+      setLocationMessage("");
+      updateLocationMode("tracking");
+      void startDeviceOrientationTracking();
+
+      geolocationWatchIdRef.current = navigator.geolocation.watchPosition(
+        ({ coords }) => {
+          if (locationModeRef.current !== "tracking") {
+            return;
+          }
+
+          controller.moveTo(
+            {
+              latitude: coords.latitude,
+              longitude: coords.longitude,
+            },
+            false,
+            deviceHeadingRef.current ?? coords.heading,
+          );
+        },
+        handlePositionError,
+        {
+          enableHighAccuracy: true,
+          timeout: 10_000,
+          maximumAge: 5_000,
+        },
+      );
+      return;
+    }
+
+    // 4. 비활성 상태의 첫 클릭은 현재 위치를 한 번만 조회해 지도를 이동한다.
+    // 성공 후에는 추적하지 않는 현재 위치 상태로 전환해 두 번째 클릭을 기다린다.
     setLocationStatus("locating");
     setLocationMessage("");
-    setCurrentLocationCoordinate(null);
-
-    // 2. 위치를 얻은 뒤에만 지도 이동과 성공 상태를 함께 반영한다.
-    // 실패 콜백에서는 브라우저 오류 코드를 사용자 메시지로 변환한다.
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
         const coordinate: MapCoordinate = {
@@ -450,26 +694,23 @@ export function useTrafficMap() {
           longitude: coords.longitude,
         };
 
-        mapControllerRef.current?.moveTo(coordinate);
-        setCurrentLocationCoordinate(coordinate);
+        controller.moveTo(coordinate, true, coords.heading);
+        updateLocationMode("current");
         setLocationStatus("idle");
         setLocationMessage("");
       },
-      ({ code }) => {
-        setCurrentLocationCoordinate(null);
-        setLocationStatus("error");
-        setLocationMessage(
-          LOCATION_ERROR_MESSAGES[code] ??
-            "현재 위치를 확인하는 중 문제가 발생했습니다.",
-        );
-      },
+      handlePositionError,
       {
         enableHighAccuracy: true,
         timeout: 10_000,
         maximumAge: 30_000,
       },
     );
-  }, []);
+  }, [
+    startDeviceOrientationTracking,
+    stopLocationTracking,
+    updateLocationMode,
+  ]);
 
   const intersections = intersectionsQuery.data ?? [];
   const trashBins = trashBinsQuery.data ?? [];
@@ -623,7 +864,7 @@ export function useTrafficMap() {
     mapErrorMessage,
     locationStatus,
     locationMessage,
-    isCurrentLocationActive: currentLocationCoordinate !== null,
+    locationMode,
     isCurrentLocationDisabled:
       mapStatus !== "ready" || locationStatus === "locating",
     handleCurrentLocation,

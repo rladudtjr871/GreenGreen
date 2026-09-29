@@ -12,7 +12,7 @@ export function TrafficMap() {
     mapErrorMessage,
     locationStatus,
     locationMessage,
-    isCurrentLocationActive,
+    locationMode,
     isCurrentLocationDisabled,
     handleCurrentLocation,
     activeLayer,
@@ -166,11 +166,23 @@ export function TrafficMap() {
                 <button
                   type="button"
                   className={`${styles.locationButton} ${
-                    isCurrentLocationActive ? styles.locationButtonActive : ""
+                    locationMode !== "inactive"
+                      ? styles.locationButtonActive
+                      : ""
+                  } ${
+                    locationMode === "tracking"
+                      ? styles.locationButtonTracking
+                      : ""
                   }`}
                   onClick={handleCurrentLocation}
                   disabled={isCurrentLocationDisabled}
-                  aria-label="현재 위치로 이동"
+                  aria-label={
+                    locationMode === "tracking"
+                      ? "현재 위치 고정 해제"
+                      : locationMode === "current"
+                        ? "현재 위치 고정 시작"
+                        : "현재 위치로 이동"
+                  }
                 >
                   {locationStatus === "locating" ? (
                     <span
@@ -192,7 +204,13 @@ export function TrafficMap() {
               </div>
 
               <p className={styles.locationHint}>
-                {locationStatus === "locating" ? "이동 중" : "현재 위치"}
+                {locationStatus === "locating"
+                  ? "이동 중"
+                  : locationMode === "tracking"
+                    ? "위치 고정"
+                    : locationMode === "current"
+                      ? "현재 위치"
+                      : "위치 찾기"}
               </p>
             </div>
           </div>

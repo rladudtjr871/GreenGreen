@@ -319,6 +319,19 @@
   background: #f4fff8;
 }
 
+.locationButtonTracking {
+  color: #fff;
+  background: #03a94d;
+  box-shadow:
+    0 0 0 5px rgba(3, 199, 90, 0.15),
+    0 10px 28px rgba(20, 49, 34, 0.24);
+}
+
+.locationButtonTracking:hover:not(:disabled) {
+  color: #fff;
+  background: #029f48;
+}
+
 .locationButton:focus-visible {
   outline: 3px solid rgba(3, 199, 90, 0.32);
   outline-offset: 3px;
