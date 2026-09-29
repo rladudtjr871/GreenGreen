@@ -9,7 +9,9 @@
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
     "data:intersections": "node scripts/generate-intersections-snapshot.mjs",
-    "data:restrooms": "node scripts/generate-restrooms-snapshot.mjs"
+    "data:restrooms": "node scripts/generate-restrooms-snapshot.mjs",
+    "data:trash-bins:merge": "node scripts/merge-trash-bins-snapshot.mjs",
+    "data:restrooms:merge": "node scripts/merge-restrooms-snapshot.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.103.1",

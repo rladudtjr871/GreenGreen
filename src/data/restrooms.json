@@ -93553,5 +93553,425 @@
       "latitude": 37.54648536,
       "longitude": 126.8623008
     }
+  },
+  {
+    "restroomId": "public-restroom-3b1c490c82574661",
+    "name": "자스민 개방화장실",
+    "district": null,
+    "roadAddress": "강원특별자치도 원주시 섬밭들2길 20-1 자스민",
+    "lotAddress": "강원특별자치도 원주시 무실동 1658-6",
+    "restroomType": null,
+    "openingHours": null,
+    "availability": null,
+    "accessibleAvailability": null,
+    "locationCategory": null,
+    "closedDays": null,
+    "facilities": null,
+    "safetyFacilities": null,
+    "telephone": null,
+    "note": null,
+    "coordinate": {
+      "latitude": 37.3333646,
+      "longitude": 127.9244819
+    }
+  },
+  {
+    "restroomId": "public-restroom-2ff12929a0d132d2",
+    "name": "용소막성당 개방화장실",
+    "district": null,
+    "roadAddress": "강원특별자치도 원주시 신림면 구학산로 1853-4",
+    "lotAddress": "강원특별자치도 원주시 신림면 용암리 753-2",
+    "restroomType": null,
+    "openingHours": null,
+    "availability": null,
+    "accessibleAvailability": null,
+    "locationCategory": null,
+    "closedDays": null,
+    "facilities": null,
+    "safetyFacilities": null,
+    "telephone": null,
+    "note": null,
+    "coordinate": {
+      "latitude": 37.2118374,
+      "longitude": 128.0875117
+    }
+  },
+  {
+    "restroomId": "public-restroom-b995f9be27386b69",
+    "name": "원주남원추어탕 개방화장실",
+    "district": null,
+    "roadAddress": "강원특별자치도 원주시 치악로 1626-11",
+    "lotAddress": "강원특별자치도 원주시 단구동 185-27",
+    "restroomType": null,
+    "openingHours": null,
+    "availability": null,
+    "accessibleAvailability": null,
+    "locationCategory": null,
+    "closedDays": null,
+    "facilities": null,
+    "safetyFacilities": null,
+    "telephone": null,
+    "note": null,
+    "coordinate": {
+      "latitude": 37.3289308,
+      "longitude": 127.9612323
+    }
+  },
+  {
+    "restroomId": "public-restroom-093d9b0d5bdbff6b",
+    "name": "소든소든 샤브만두전골 개방화장실",
+    "district": null,
+    "roadAddress": "강원특별자치도 원주시 향교길 46",
+    "lotAddress": "강원특별자치도 원주시 명륜동 263-6",
+    "restroomType": null,
+    "openingHours": null,
+    "availability": null,
+    "accessibleAvailability": null,
+    "locationCategory": null,
+    "closedDays": null,
+    "facilities": null,
+    "safetyFacilities": null,
+    "telephone": null,
+    "note": null,
+    "coordinate": {
+      "latitude": 37.3386281,
+      "longitude": 127.9508211
+    }
+  },
+  {
+    "restroomId": "public-restroom-214fa6a5d001b545",
+    "name": "흥업쉼터개방화장실",
+    "district": null,
+    "roadAddress": null,
+    "lotAddress": "강원특별자치도 원주시 흥업면 흥업리 222",
+    "restroomType": null,
+    "openingHours": null,
+    "availability": null,
+    "accessibleAvailability": null,
+    "locationCategory": null,
+    "closedDays": null,
+    "facilities": null,
+    "safetyFacilities": null,
+    "telephone": null,
+    "note": null,
+    "coordinate": {
+      "latitude": 37.2957098,
+      "longitude": 127.9254134
+    }
+  },
+  {
+    "restroomId": "public-restroom-a431b857c7df0c0a",
+    "name": "미리내도서관 화장실",
+    "district": null,
+    "roadAddress": "강원특별자치도 원주시 양지로 46",
+    "lotAddress": "강원특별자치도 원주시 반곡동 1889",
+    "restroomType": null,
+    "openingHours": null,
+    "availability": null,
+    "accessibleAvailability": null,
+    "locationCategory": null,
+    "closedDays": null,
+    "facilities": null,
+    "safetyFacilities": null,
+    "telephone": null,
+    "note": null,
+    "coordinate": {
+      "latitude": 37.3252788,
+      "longitude": 127.983863
+    }
+  },
+  {
+    "restroomId": "public-restroom-2eca36338e92eb30",
+    "name": "개방화장실",
+    "district": null,
+    "roadAddress": null,
+    "lotAddress": "강원특별자치도 원주시 지정면 간현리 산115-1",
+    "restroomType": null,
+    "openingHours": null,
+    "availability": null,
+    "accessibleAvailability": null,
+    "locationCategory": null,
+    "closedDays": null,
+    "facilities": null,
+    "safetyFacilities": null,
+    "telephone": null,
+    "note": null,
+    "coordinate": {
+      "latitude": 37.3682321,
+      "longitude": 127.8224125
+    }
+  },
+  {
+    "restroomId": "public-restroom-478de42bc21f648a",
+    "name": "섬강화장실",
+    "district": null,
+    "roadAddress": "강원특별자치도 원주시 지정면 소금산길 21-2",
+    "lotAddress": "강원특별자치도 원주시 지정면 간현리 1036-4",
+    "restroomType": null,
+    "openingHours": null,
+    "availability": null,
+    "accessibleAvailability": null,
+    "locationCategory": null,
+    "closedDays": null,
+    "facilities": null,
+    "safetyFacilities": null,
+    "telephone": null,
+    "note": null,
+    "coordinate": {
+      "latitude": 37.3641737,
+      "longitude": 127.8333874
+    }
+  },
+  {
+    "restroomId": "public-restroom-4c97de7ba71862b5",
+    "name": "참숯골 개방화장실",
+    "district": null,
+    "roadAddress": "강원특별자치도 원주시 장미공원길 67",
+    "lotAddress": "강원특별자치도 원주시 단계동 866",
+    "restroomType": null,
+    "openingHours": null,
+    "availability": null,
+    "accessibleAvailability": null,
+    "locationCategory": null,
+    "closedDays": null,
+    "facilities": null,
+    "safetyFacilities": null,
+    "telephone": null,
+    "note": null,
+    "coordinate": {
+      "latitude": 37.3460632,
+      "longitude": 127.929224
+    }
+  },
+  {
+    "restroomId": "public-restroom-ff2bb7343b1731f1",
+    "name": "성문사 개방화장실",
+    "district": null,
+    "roadAddress": "강원특별자치도 원주시 고문골길 77-47",
+    "lotAddress": "강원특별자치도 원주시 행구동 129-3",
+    "restroomType": null,
+    "openingHours": null,
+    "availability": null,
+    "accessibleAvailability": null,
+    "locationCategory": null,
+    "closedDays": null,
+    "facilities": null,
+    "safetyFacilities": null,
+    "telephone": null,
+    "note": null,
+    "coordinate": {
+      "latitude": 37.3408595,
+      "longitude": 128.010608
+    }
+  },
+  {
+    "restroomId": "public-restroom-437d41af44a63828",
+    "name": "문막휴게소(강릉방향)화장실",
+    "district": null,
+    "roadAddress": "강원특별자치도 원주시 문막읍 원문로 1234",
+    "lotAddress": "강원특별자치도 원주시 문막읍 동화리 114",
+    "restroomType": null,
+    "openingHours": null,
+    "availability": null,
+    "accessibleAvailability": null,
+    "locationCategory": null,
+    "closedDays": null,
+    "facilities": null,
+    "safetyFacilities": null,
+    "telephone": null,
+    "note": null,
+    "coordinate": {
+      "latitude": 37.3358525,
+      "longitude": 127.8587291
+    }
+  },
+  {
+    "restroomId": "public-restroom-f0074ac104933dbc",
+    "name": "원주축산농협 단계지점 개방화장실",
+    "district": null,
+    "roadAddress": "강원특별자치도 원주시 금불3길 16",
+    "lotAddress": "강원특별자치도 원주시 단계동 825",
+    "restroomType": null,
+    "openingHours": null,
+    "availability": null,
+    "accessibleAvailability": null,
+    "locationCategory": null,
+    "closedDays": null,
+    "facilities": null,
+    "safetyFacilities": null,
+    "telephone": null,
+    "note": null,
+    "coordinate": {
+      "latitude": 37.3489943,
+      "longitude": 127.9322082
+    }
+  },
+  {
+    "restroomId": "public-restroom-da3fbb6c25cd851b",
+    "name": "명동숯불갈비 개방화장실",
+    "district": null,
+    "roadAddress": "강원특별자치도 원주시 남원로 492-2",
+    "lotAddress": "강원특별자치도 원주시 단구동 1523-1",
+    "restroomType": null,
+    "openingHours": null,
+    "availability": null,
+    "accessibleAvailability": null,
+    "locationCategory": null,
+    "closedDays": null,
+    "facilities": null,
+    "safetyFacilities": null,
+    "telephone": null,
+    "note": null,
+    "coordinate": {
+      "latitude": 37.3280526,
+      "longitude": 127.9451183
+    }
+  },
+  {
+    "restroomId": "public-restroom-f4bab2de422e11d9",
+    "name": "삼교리동치미막국수 개방화장실",
+    "district": null,
+    "roadAddress": "강원특별자치도 원주시 북원로 1843",
+    "lotAddress": "강원특별자치도 원주시 무실동 947-41",
+    "restroomType": null,
+    "openingHours": null,
+    "availability": null,
+    "accessibleAvailability": null,
+    "locationCategory": null,
+    "closedDays": null,
+    "facilities": null,
+    "safetyFacilities": null,
+    "telephone": null,
+    "note": null,
+    "coordinate": {
+      "latitude": 37.3133715,
+      "longitude": 127.9156953
+    }
+  },
+  {
+    "restroomId": "public-restroom-53fcd2df5c31417e",
+    "name": "밤골식당 개방화장실",
+    "district": null,
+    "roadAddress": "강원특별자치도 원주시 흥업면 북원로 1608",
+    "lotAddress": "강원특별자치도 원주시 흥업면 흥업리 458-5",
+    "restroomType": null,
+    "openingHours": null,
+    "availability": null,
+    "accessibleAvailability": null,
+    "locationCategory": null,
+    "closedDays": null,
+    "facilities": null,
+    "safetyFacilities": null,
+    "telephone": null,
+    "note": null,
+    "coordinate": {
+      "latitude": 37.2926776,
+      "longitude": 127.9178323
+    }
+  },
+  {
+    "restroomId": "public-restroom-db6a75b8efc138be",
+    "name": "개방화장실",
+    "district": null,
+    "roadAddress": "강원특별자치도 원주시 석경길 53",
+    "lotAddress": "강원특별자치도 원주시 행구동 344",
+    "restroomType": null,
+    "openingHours": null,
+    "availability": null,
+    "accessibleAvailability": null,
+    "locationCategory": null,
+    "closedDays": null,
+    "facilities": null,
+    "safetyFacilities": null,
+    "telephone": null,
+    "note": null,
+    "coordinate": {
+      "latitude": 37.3572139,
+      "longitude": 128.0117164
+    }
+  },
+  {
+    "restroomId": "public-restroom-b7fc7ed5db6f87cc",
+    "name": "한솔프라자 개방화장실",
+    "district": null,
+    "roadAddress": "강원특별자치도 원주시 서원대로 410 한솔프라자",
+    "lotAddress": "강원특별자치도 원주시 단구동 1512-3",
+    "restroomType": null,
+    "openingHours": null,
+    "availability": null,
+    "accessibleAvailability": null,
+    "locationCategory": null,
+    "closedDays": null,
+    "facilities": null,
+    "safetyFacilities": null,
+    "telephone": null,
+    "note": null,
+    "coordinate": {
+      "latitude": 37.3298354,
+      "longitude": 127.9503049
+    }
+  },
+  {
+    "restroomId": "public-restroom-f4068a77ec36138b",
+    "name": "그때그집 개방화장실",
+    "district": null,
+    "roadAddress": "강원특별자치도 원주시 무실로 130",
+    "lotAddress": "강원특별자치도 원주시 일산동 355-1",
+    "restroomType": null,
+    "openingHours": null,
+    "availability": null,
+    "accessibleAvailability": null,
+    "locationCategory": null,
+    "closedDays": null,
+    "facilities": null,
+    "safetyFacilities": null,
+    "telephone": null,
+    "note": null,
+    "coordinate": {
+      "latitude": 37.3433793,
+      "longitude": 127.9425218
+    }
+  },
+  {
+    "restroomId": "public-restroom-6251b1a81cf4aada",
+    "name": "오대산산채정식 개방화장실",
+    "district": null,
+    "roadAddress": "강원특별자치도 원주시 남산로 105",
+    "lotAddress": "강원특별자치도 원주시 일산동 331-6",
+    "restroomType": null,
+    "openingHours": null,
+    "availability": null,
+    "accessibleAvailability": null,
+    "locationCategory": null,
+    "closedDays": null,
+    "facilities": null,
+    "safetyFacilities": null,
+    "telephone": null,
+    "note": null,
+    "coordinate": {
+      "latitude": 37.3464397,
+      "longitude": 127.9407022
+    }
+  },
+  {
+    "restroomId": "public-restroom-504aee7d5cdc0100",
+    "name": "태기산막국수 개방화장실",
+    "district": null,
+    "roadAddress": "강원특별자치도 원주시 소초면 장수1로 301",
+    "lotAddress": "강원특별자치도 원주시 소초면 수암리 1361-2",
+    "restroomType": null,
+    "openingHours": null,
+    "availability": null,
+    "accessibleAvailability": null,
+    "locationCategory": null,
+    "closedDays": null,
+    "facilities": null,
+    "safetyFacilities": null,
+    "telephone": null,
+    "note": null,
+    "coordinate": {
+      "latitude": 37.3888835,
+      "longitude": 127.9778493
+    }
   }
 ]

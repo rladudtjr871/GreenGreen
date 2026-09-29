@@ -45,7 +45,7 @@ GreenGreen은 서울의 보행자 신호정보를 지도에서 직관적으로 �
 | [NAVER Maps JavaScript API v3](https://navermaps.github.io/maps.js.ncp/) | 지도 렌더링, 이동·확대/축소, 사용자 정의 마커와 지도 이벤트 | 브라우저 |
 | [서울교통빅데이터플랫폼 T-Data](https://t-data.seoul.go.kr/) | C-ITS 교차로 정보와 실시간 신호·잔여시간 제공 | Next.js 서버 |
 | 전국휴지통표준데이터 | 휴지통 위치, 유형, 관리기관 정보 | 정적 JSON 스냅샷 |
-| 서울시 공중화장실 위치정보 | 화장실 좌표, 주소, 개방시간, 시설 정보 | 정적 JSON 스냅샷 |
+| 서울시 공중화장실 위치정보·원주시 화장실 위치 JSON | 화장실 좌표, 주소, 개방시간, 시설 정보 | 정적 JSON 스냅샷 |
 | Browser Geolocation API | 사용자의 현재 위치 확인 | 브라우저 |
 
 NAVER Maps의 Web Client ID는 지도를 로드하기 위해 브라우저에서 사용합니다. 반면 T-Data API Key는 외부에 노출되지 않도록 Next.js Route Handler에서만 읽습니다. 휴지통과 화장실은 런타임에 주소를 좌표로 변환하지 않고, 미리 정규화해 저장한 좌표를 사용하므로 지도 이동마다 지오코딩 API를 호출하지 않습니다.
@@ -58,8 +58,8 @@ NAVER Maps의 Web Client ID는 지도를 로드하기 위해 브라우저에서 
 | 레이어 | 기본 데이터 | 레코드 수 | 제공 범위 |
 | --- | --- | ---: | --- |
 | 신호등 | V2X 교차로 MAP 정보 최신본 | 2,779 | 서울 |
-| 휴지통 | 전국휴지통표준데이터 정규화본 | 3,732 | 원본에 좌표가 제공된 지역 |
-| 화장실 | 서울시 공중화장실 위치정보 | 4,455 | 서울 |
+| 휴지통 | 전국휴지통표준데이터 정규화본 | 3,753 | 원본에 좌표가 제공된 지역 |
+| 화장실 | 서울시·원주시 화장실 위치정보 | 4,475 | 서울·원주 |
 
 교차로는 `TDATA_INTERSECTION_SOURCE=legacy` 설정으로 이전 998개 스냅샷을 선택할 수 있습니다. 위 숫자는 현재 저장소에 포함된 파일 기준이며, 원본 데이터를 다시 변환하면 달라질 수 있습니다.
 
@@ -153,7 +153,7 @@ T-Data 응답은 service와 mapper를 거쳐 `Intersection`, `PedestrianSignal` 
 
 ### 스냅샷 기반 위치 데이터
 
-교차로와 생활 편의시설 위치는 저장소의 정적 JSON 스냅샷으로 관리합니다. Route Handler가 지도 경계를 기준으로 필터링하기 때문에 전체 파일이 브라우저로 전송되지 않으며, 서비스 이용 중 별도의 주소→좌표 변환 호출도 발생하지 않습니다. 화장실 원본을 다시 반영할 때는 `pnpm data:restrooms <원본-json-경로>`로 내부 모델을 재생성할 수 있습니다.
+교차로와 생활 편의시설 위치는 저장소의 정적 JSON 스냅샷으로 관리합니다. Route Handler가 지도 경계를 기준으로 필터링하기 때문에 전체 파일이 브라우저로 전송되지 않으며, 서비스 이용 중 별도의 주소→좌표 변환 호출도 발생하지 않습니다. 서울 화장실 원본은 `pnpm data:restrooms <원본-json-경로>`로 재생성하고, 추가 데이터는 `pnpm data:restrooms:merge <원본-json-경로>` 또는 `pnpm data:trash-bins:merge <원본-csv-경로>`로 중복 없이 병합할 수 있습니다.
 
 ### 컴포넌트와 로직의 분리
 
@@ -169,7 +169,7 @@ T-Data 응답은 service와 mapper를 거쳐 `Intersection`, `PedestrianSignal` 
 | Server State | TanStack Query 5 |
 | Map | NAVER Maps JavaScript API v3 |
 | Traffic Data | 서울 T-Data C-ITS API, 교차로 스냅샷 |
-| Place Data | 전국휴지통표준데이터, 서울시 공중화장실 위치정보 |
+| Place Data | 전국휴지통표준데이터, 서울시·원주시 화장실 위치정보 |
 | Package Manager | pnpm 12 |
 
 ## 프로젝트 구조

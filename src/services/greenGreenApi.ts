@@ -11,6 +11,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function isNullableString(value: unknown): value is string | null {
+  return typeof value === "string" || value === null;
+}
+
 function isIntersection(value: unknown): value is Intersection {
   if (!isRecord(value) || !isRecord(value.coordinate)) {
     return false;
@@ -51,19 +55,19 @@ function isRestroom(value: unknown): value is Restroom {
   return (
     typeof value.restroomId === "string" &&
     typeof value.name === "string" &&
-    typeof value.district === "string" &&
-    typeof value.roadAddress === "string" &&
-    typeof value.lotAddress === "string" &&
-    typeof value.restroomType === "string" &&
-    typeof value.openingHours === "string" &&
-    typeof value.availability === "string" &&
-    typeof value.accessibleAvailability === "string" &&
-    typeof value.locationCategory === "string" &&
-    typeof value.closedDays === "string" &&
-    typeof value.facilities === "string" &&
-    typeof value.safetyFacilities === "string" &&
-    typeof value.telephone === "string" &&
-    typeof value.note === "string" &&
+    isNullableString(value.district) &&
+    isNullableString(value.roadAddress) &&
+    isNullableString(value.lotAddress) &&
+    isNullableString(value.restroomType) &&
+    isNullableString(value.openingHours) &&
+    isNullableString(value.availability) &&
+    isNullableString(value.accessibleAvailability) &&
+    isNullableString(value.locationCategory) &&
+    isNullableString(value.closedDays) &&
+    isNullableString(value.facilities) &&
+    isNullableString(value.safetyFacilities) &&
+    isNullableString(value.telephone) &&
+    isNullableString(value.note) &&
     typeof value.coordinate.latitude === "number" &&
     typeof value.coordinate.longitude === "number"
   );

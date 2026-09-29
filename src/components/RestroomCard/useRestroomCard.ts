@@ -9,13 +9,18 @@ type RestroomDetail = {
   value: string;
 };
 
+type RestroomDetailCandidate = {
+  label: string;
+  value: string | null;
+};
+
 export function useRestroomCard(restroom: Restroom) {
   const address = restroom.roadAddress || restroom.lotAddress;
 
   const details = useMemo<RestroomDetail[]>(() => {
     // 1. 원본에 값이 있는 항목만 상세 목록으로 만든다.
     // 빈 필드가 많은 공공데이터 특성상 의미 없는 행을 숨겨 팝업을 간결하게 유지한다.
-    const candidates: RestroomDetail[] = [
+    const candidates: RestroomDetailCandidate[] = [
       { label: "개방 시간", value: restroom.openingHours },
       { label: "화장실 현황", value: restroom.availability },
       { label: "장애인 화장실", value: restroom.accessibleAvailability },
@@ -32,7 +37,10 @@ export function useRestroomCard(restroom: Restroom) {
       candidates.push({ label: "비고", value: restroom.note });
     }
 
-    return candidates.filter(({ value }) => value.length > 0);
+    return candidates.filter(
+      (detail): detail is RestroomDetail =>
+        typeof detail.value === "string" && detail.value.length > 0,
+    );
   }, [restroom]);
 
   return { address, details };

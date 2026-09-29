@@ -9,11 +9,13 @@ if (!sourcePath) {
 }
 
 function cleanText(value) {
-  return String(value ?? "")
+  const normalized = String(value ?? "")
     .split("|")
     .map((item) => item.trim())
     .filter(Boolean)
     .join(" · ");
+
+  return normalized || null;
 }
 
 // 1. 서울시 원본 JSON의 DATA 배열만 읽는다.
@@ -53,6 +55,7 @@ const restrooms = source.DATA.map((row) => ({
 const seenIds = new Set();
 const validRestrooms = restrooms.filter((restroom) => {
   const isValid =
+    restroom.name !== null &&
     restroom.name.length > 0 &&
     !seenIds.has(restroom.restroomId) &&
     Number.isFinite(restroom.coordinate.latitude) &&
