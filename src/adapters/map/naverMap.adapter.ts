@@ -148,6 +148,8 @@ type NaverMapsSdk = {
     icon: NaverMarkerIcon;
     /** 겹친 마커 사이의 표시 우선순위다. */
     zIndex: number;
+    /** 마커가 포인터 이벤트를 받을지 결정한다. */
+    clickable?: boolean;
   }) => NaverMarker;
   /** 마커 기준점에 사용하는 NAVER 픽셀 좌표 생성자다. */
   Point: new (x: number, y: number) => { x: number; y: number };
@@ -597,7 +599,9 @@ export function createNaverMap(
           content: createCurrentLocationMarkerContent(heading),
           anchor: new sdk.Point(36, 36),
         },
-        zIndex: 100,
+        // 신호등과 겹쳐도 선택을 방해하지 않도록 클릭 대상과 표시 순위에서 제외한다.
+        clickable: false,
+        zIndex: 30,
       });
     },
     setCurrentLocationHeading(heading) {
