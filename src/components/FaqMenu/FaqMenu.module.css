@@ -1,0 +1,138 @@
+.menu {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  animation: menuIn 160ms ease-out;
+}
+
+.actionLink {
+  display: flex;
+  min-width: 112px;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  border-radius: 14px;
+  color: #294336;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 9px 24px rgba(20, 49, 34, 0.16);
+  font-size: 13px;
+  font-weight: 750;
+  text-decoration: none;
+  backdrop-filter: blur(12px);
+  transition:
+    color 0.16s ease,
+    background 0.16s ease,
+    transform 0.16s ease;
+}
+
+.actionLink:hover {
+  color: #008c40;
+  background: #f5fff9;
+  transform: translateX(-2px);
+}
+
+.actionLink:focus-visible,
+.trigger:focus-visible {
+  outline: 3px solid rgba(3, 199, 90, 0.32);
+  outline-offset: 3px;
+}
+
+.actionIcon {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 8px;
+  color: #029c49;
+  background: #eaf9f0;
+}
+
+.actionIcon svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.trigger {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  border-radius: 18px;
+  color: #2f6950;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(20, 49, 34, 0.2);
+  cursor: pointer;
+  transition:
+    color 0.16s ease,
+    background 0.16s ease,
+    transform 0.16s ease;
+}
+
+.trigger:hover,
+.triggerOpen {
+  color: #fff;
+  background: #173b2a;
+  transform: translateY(-2px);
+}
+
+.trigger svg {
+  width: 26px;
+  height: 26px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+@keyframes menuIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 640px) {
+  .trigger {
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+  }
+
+  .actionLink {
+    min-width: 104px;
+    padding: 9px 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .actions {
+    animation: none;
+  }
+
+  .actionLink,
+  .trigger {
+    transition: none;
+  }
+}

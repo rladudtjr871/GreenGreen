@@ -4,6 +4,7 @@ import styles from "./TrafficMap.module.css";
 import { useTrafficMap } from "./useTrafficMap";
 import { SignalCard } from "@/components/SignalCard/SignalCard";
 import { RestroomCard } from "@/components/RestroomCard/RestroomCard";
+import { FaqMenu } from "@/components/FaqMenu/FaqMenu";
 
 export function TrafficMap() {
   const {
@@ -163,6 +164,7 @@ export function TrafficMap() {
                     {locationMessage}
                   </p>
                 )}
+                <FaqMenu />
                 <button
                   type="button"
                   className={`${styles.locationButton} ${
