@@ -6,6 +6,7 @@ import type {
   PedestrianSignal,
   PedestrianSignalDirection,
 } from "@/types/signal";
+import type { ContactRequest } from "@/types/contact";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -206,4 +207,25 @@ export async function fetchPedestrianSignal(
   }
 
   return payload;
+}
+
+export async function sendContactInquiry(
+  contactRequest: ContactRequest,
+): Promise<string> {
+  // 1. 문의 내용은 외부 서비스가 아닌 프로젝트 Route Handler로만 전달한다.
+  // 서버가 입력을 다시 검증하고 EmailJS Public Key를 노출하지 않은 채 전송하기 위함이다.
+  const response = await fetch("/api/contact", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(contactRequest),
+  });
+
+  // 2. 공통 응답 처리로 서버가 반환한 성공 또는 실패 메시지를 일관되게 사용한다.
+  const payload = await parseApiResponse(response);
+
+  if (!isRecord(payload) || typeof payload.message !== "string") {
+    throw new Error("문의 전송 결과를 확인할 수 없습니다.");
+  }
+
+  return payload.message;
 }

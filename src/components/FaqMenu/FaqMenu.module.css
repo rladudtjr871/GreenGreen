@@ -84,7 +84,10 @@
     transform 0.16s ease;
 }
 
-.trigger:hover,
+.trigger:hover {
+  transform: translateY(-2px);
+}
+
 .triggerOpen {
   color: #fff;
   background: #173b2a;

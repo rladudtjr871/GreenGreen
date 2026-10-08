@@ -20,7 +20,7 @@
 
 .header {
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) 64px;
+  grid-template-columns: 48px minmax(0, 1fr) 76px;
   align-items: center;
   gap: 14px;
   padding-bottom: 20px;
@@ -72,13 +72,14 @@
 }
 
 .submitButton {
-  min-width: 64px;
+  min-width: 76px;
   padding: 10px 13px;
   border-radius: 12px;
   color: #fff;
   background: #03b653;
   font-size: 13px;
   font-weight: 800;
+  white-space: nowrap;
   box-shadow: 0 7px 16px rgba(3, 174, 79, 0.2);
 }
 
@@ -89,6 +90,15 @@
 
 .submitButton:hover {
   background: #029f48;
+}
+
+.submitButton:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+.submitButton:disabled:hover {
+  background: #03b653;
 }
 
 .closeButton:focus-visible,
@@ -182,6 +192,19 @@
   box-shadow: 0 0 0 4px rgba(3, 199, 90, 0.08);
 }
 
+.field input[aria-invalid="true"],
+.field textarea[aria-invalid="true"] {
+  border-color: #d65b5b;
+  background: #fffafa;
+}
+
+.fieldError {
+  color: #b73d3d;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
 .notice {
   margin-top: 22px;
   padding: 13px 15px;
@@ -191,6 +214,16 @@
   font-size: 11px;
   line-height: 1.55;
   text-align: center;
+}
+
+.noticeSuccess {
+  color: #176b3c;
+  background: #e9f8ef;
+}
+
+.noticeError {
+  color: #a43b3b;
+  background: #fff0f0;
 }
 
 @media (max-width: 640px) {
@@ -209,7 +242,7 @@
   }
 
   .header {
-    grid-template-columns: 44px minmax(0, 1fr) 58px;
+    grid-template-columns: 44px minmax(0, 1fr) 70px;
     padding-bottom: 15px;
   }
 
@@ -223,7 +256,7 @@
   }
 
   .submitButton {
-    min-width: 58px;
+    min-width: 70px;
     padding: 9px 10px;
   }
 
