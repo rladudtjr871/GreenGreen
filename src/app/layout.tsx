@@ -26,6 +26,12 @@ export const metadata: Metadata = {
   metadataBase: new URL(metadataBaseUrl),
   title: SITE_TITLE,
   description: SITE_DESCRIPTION,
+  // iOS는 manifest 대신 이 값으로 홈 화면 아이콘 아래 이름과 단독 실행 여부를 정한다.
+  appleWebApp: {
+    capable: true,
+    title: "GreenGreen",
+    statusBarStyle: "default",
+  },
   openGraph: {
     type: "website",
     locale: "ko_KR",
