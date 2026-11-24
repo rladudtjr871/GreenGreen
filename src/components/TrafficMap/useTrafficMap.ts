@@ -394,10 +394,17 @@ export function useTrafficMap() {
         // 첫 idle 이벤트를 기다리지 않아도 현재 줌에 맞는 안내와 조회가 시작된다.
         removeIdleListener = controller.onIdle(updateViewport);
         removeUserMoveListener = controller.onUserMove(() => {
-          // 사용자가 지도를 직접 조작하면 1회 위치와 고정 추적을 모두 해제한다.
-          // 지도 중심이 GPS와 다르게 이동한 상태를 활성 위치 모드로 표시하지 않기 위함이다.
+          // 1. 현재 위치 상태에서는 아무것도 바꾸지 않는다.
+          // 마커는 지도를 움직여도 유지하고, 해제는 위치 버튼의 세 번째 클릭으로만 한다.
+          if (locationModeRef.current !== "tracking") {
+            return;
+          }
+
+          // 2. 위치 고정 중이면 GPS 갱신마다 지도가 사용자 위치로 되돌아가지 않도록 추적을 멈춘다.
+          // 마커는 마지막 위치에 남기고 현재 위치 상태로 돌아가,
+          // 다음 클릭에서 다시 위치 고정을, 그다음 클릭에서 해제를 할 수 있게 한다.
           stopLocationTracking();
-          updateLocationMode("inactive");
+          updateLocationMode("current");
           setLocationStatus("idle");
           setLocationMessage("");
         });

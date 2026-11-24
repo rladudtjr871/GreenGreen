@@ -641,18 +641,15 @@ export function createNaverMap(
     },
     onUserMove(listener) {
       const handleUserMove = () => {
-        // 1. 현재 위치 표시가 이미 해제됐다면 반복되는 터치 이동 이벤트를 무시한다.
-        // touchmove는 손가락을 움직이는 동안 여러 번 발생하므로 최초 한 번만 상태를 갱신한다.
+        // 1. 현재 위치 마커가 없으면 위치 모드와 무관한 일반 지도 조작이므로 알리지 않는다.
         if (!currentLocationMarker) {
           return;
         }
 
-        // 2. 드래그 또는 확대·축소가 시작되면 현재 위치 점을 제거한다.
-        // GPS 좌표에 맞춰진 상태가 더는 아니므로 지도 표시부터 원래 상태로 되돌린다.
-        clearCurrentLocationMarker();
-
-        // 3. 화면 상태를 관리하는 훅에 사용자 이동을 알린다.
-        // 훅은 저장한 GPS 좌표를 비워 버튼의 활성 배경도 함께 해제한다.
+        // 2. 마커는 지도에 그대로 두고 훅에 사용자 이동만 알린다.
+        // 마커 해제는 위치 버튼의 세 번째 클릭으로만 수행하고,
+        // 훅은 위치 고정 중일 때 지도 중심 따라가기만 멈춘다.
+        // touchmove처럼 반복되는 이벤트도 전달되므로 훅의 처리는 중복 호출에 안전해야 한다.
         listener();
       };
       const eventListeners = ["dragstart", "touchmove", "pinchstart"].map(
