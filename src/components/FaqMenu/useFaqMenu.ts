@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
+/** FAQ 메뉴의 열림 상태와 바깥 클릭, Escape 닫기를 관리한다. */
 export function useFaqMenu() {
   const menuRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -11,6 +12,7 @@ export function useFaqMenu() {
       return;
     }
 
+    /** 메뉴 바깥을 누르면 메뉴를 닫는다. */
     const handlePointerDown = (event: PointerEvent) => {
       // 1. 메뉴 바깥에서 시작된 입력만 닫기 동작으로 처리한다.
       // 링크나 FAQ 버튼을 누를 때 먼저 닫혀 탐색이 취소되는 상황을 피하기 위한 순서다.
@@ -22,6 +24,7 @@ export function useFaqMenu() {
       }
     };
 
+    /** Escape 키를 누르면 메뉴를 닫는다. */
     const handleKeyDown = (event: KeyboardEvent) => {
       // 2. 키보드 사용자가 지도 조작으로 돌아가기 쉽도록 Escape로 메뉴를 닫는다.
       if (event.key === "Escape") {

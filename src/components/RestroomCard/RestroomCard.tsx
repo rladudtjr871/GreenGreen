@@ -8,6 +8,7 @@ type RestroomCardProps = {
   onClose: () => void;
 };
 
+/** 선택한 공중화장실의 주소와 상세 정보 카드를 렌더링한다. */
 export function RestroomCard({ restroom, onClose }: RestroomCardProps) {
   const { address, details } = useRestroomCard(restroom);
 

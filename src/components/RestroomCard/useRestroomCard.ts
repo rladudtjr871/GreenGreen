@@ -14,6 +14,7 @@ type RestroomDetailCandidate = {
   value: string | null;
 };
 
+/** 화장실 데이터에서 표시할 주소와 값이 있는 상세 항목을 만든다. */
 export function useRestroomCard(restroom: Restroom) {
   const address = restroom.roadAddress || restroom.lotAddress;
 

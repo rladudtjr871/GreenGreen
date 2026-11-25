@@ -9,11 +9,13 @@ if (!sourcePath) {
   throw new Error("병합할 화장실 JSON 파일 경로를 입력해 주세요.");
 }
 
+/** 공백을 제거한 문자열을 반환하고 빈 값이면 null을 반환한다. */
 function nullableText(value) {
   const normalized = String(value ?? "").trim();
   return normalized || null;
 }
 
+/** 이름, 주소, 좌표를 기준으로 화장실의 고정 ID를 생성한다. */
 function createRestroomId(restroom) {
   const key = [
     restroom.name,
@@ -26,6 +28,7 @@ function createRestroomId(restroom) {
   return `public-restroom-${digest}`;
 }
 
+/** 이름과 좌표로 중복 판별용 자연 키를 만든다. */
 function createNaturalKey({ name, coordinate }) {
   return [
     name.trim(),

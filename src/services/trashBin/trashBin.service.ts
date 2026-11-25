@@ -8,6 +8,7 @@ const trashBinsByVersion: Record<TrashBinDataVersion, TrashBin[]> = {
   v2: trashBinV2Snapshot,
 };
 
+/** 선택한 버전의 스냅샷에서 지도 경계 안의 휴지통만 반환한다. */
 export async function getTrashBinsInBounds(
   bounds: MapBounds,
   version: TrashBinDataVersion,

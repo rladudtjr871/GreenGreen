@@ -11,6 +11,7 @@ export class EmailServiceError extends Error {
   }
 }
 
+/** 검증된 문의를 EmailJS 고정 템플릿으로 전송한다. */
 export async function sendContactEmail(
   { title, message }: ContactRequest,
   origin: string,

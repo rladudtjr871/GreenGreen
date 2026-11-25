@@ -466,3 +466,38 @@ npm install 또는 yarn을 사용하지 않는다.
 // 3. 처리 내용
 // 해당 처리가 필요한 이유와 의도 설명
 ```
+
+### Function Summary
+
+이름이 있는 모든 함수의 선언 바로 위에는
+함수 기능을 설명하는 한 줄짜리 JSDoc 주석을 작성한다.
+
+적용 대상:
+
+- function 선언 (export 여부와 무관, 내부 헬퍼 포함)
+- 변수에 할당한 화살표 함수와 useCallback 함수
+- React 컴포넌트, Custom Hook, Route Handler (GET, POST 등)
+
+이름 없는 인라인 콜백(map, filter, then 등)과
+타입으로 이미 설명된 객체 리터럴 메서드는 제외한다.
+
+형식:
+
+- `/** ... */` 한 줄로 작성해 에디터 hover에서 바로 보이게 한다.
+- 함수명은 바로 아래 선언에 있으므로 반복하지 않고 "무엇을 하는지"만 적는다.
+- 처리 순서와 이유는 함수 내부의 번호 주석(Sequential Logic)으로 설명한다.
+
+예:
+
+```ts
+/** 지도 경계 안에 포함되는 교차로만 반환한다. */
+export async function getIntersectionsInBounds(bounds: MapBounds) {
+  // 1. 처리 내용
+  // 해당 처리가 필요한 이유와 의도 설명
+}
+
+/** 위치 고정 중 사용자가 지도를 움직이면 추적을 멈춘다. */
+const handleUserMove = () => {
+  // ...
+};
+```

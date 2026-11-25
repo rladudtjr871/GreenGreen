@@ -3,6 +3,7 @@
 import styles from "./ContactForm.module.css";
 import { useContactForm } from "./useContactForm";
 
+/** 문의 제목과 내용을 입력해 전송하는 폼을 렌더링한다. */
 export function ContactForm() {
   const {
     title,

@@ -8,14 +8,17 @@ import type {
 } from "@/types/signal";
 import type { ContactRequest } from "@/types/contact";
 
+/** 값이 배열이 아닌 일반 객체인지 확인한다. */
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/** 값이 문자열 또는 null인지 확인한다. */
 function isNullableString(value: unknown): value is string | null {
   return typeof value === "string" || value === null;
 }
 
+/** 응답 값이 교차로 모델 형태인지 확인한다. */
 function isIntersection(value: unknown): value is Intersection {
   if (!isRecord(value) || !isRecord(value.coordinate)) {
     return false;
@@ -29,6 +32,7 @@ function isIntersection(value: unknown): value is Intersection {
   );
 }
 
+/** 응답 값이 휴지통 모델 형태인지 확인한다. */
 function isTrashBin(value: unknown): value is TrashBin {
   if (!isRecord(value) || !isRecord(value.coordinate)) {
     return false;
@@ -48,6 +52,7 @@ function isTrashBin(value: unknown): value is TrashBin {
   );
 }
 
+/** 응답 값이 화장실 모델 형태인지 확인한다. */
 function isRestroom(value: unknown): value is Restroom {
   if (!isRecord(value) || !isRecord(value.coordinate)) {
     return false;
@@ -74,6 +79,7 @@ function isRestroom(value: unknown): value is Restroom {
   );
 }
 
+/** 응답 값이 방향별 보행 신호 형태인지 확인한다. */
 function isSignalDirection(value: unknown): value is PedestrianSignalDirection {
   return (
     isRecord(value) &&
@@ -85,6 +91,7 @@ function isSignalDirection(value: unknown): value is PedestrianSignalDirection {
   );
 }
 
+/** 응답 값이 교차로 보행 신호 모델 형태인지 확인한다. */
 function isPedestrianSignal(value: unknown): value is PedestrianSignal {
   return (
     isRecord(value) &&
@@ -97,6 +104,7 @@ function isPedestrianSignal(value: unknown): value is PedestrianSignal {
   );
 }
 
+/** JSON 응답을 해석하고 실패 응답은 서버 메시지로 오류를 던진다. */
 async function parseApiResponse(response: Response): Promise<unknown> {
   let payload: unknown;
 
@@ -120,6 +128,7 @@ async function parseApiResponse(response: Response): Promise<unknown> {
   return payload;
 }
 
+/** 지도 경계 안의 교차로 목록을 내부 API에서 조회한다. */
 export async function fetchIntersections(
   bounds: MapBounds,
 ): Promise<Intersection[]> {
@@ -142,6 +151,7 @@ export async function fetchIntersections(
   return payload;
 }
 
+/** 지도 경계 안의 휴지통 목록을 데이터 버전별로 내부 API에서 조회한다. */
 export async function fetchTrashBins(
   bounds: MapBounds,
   version: TrashBinDataVersion,
@@ -167,6 +177,7 @@ export async function fetchTrashBins(
   return payload;
 }
 
+/** 지도 경계 안의 화장실 목록을 내부 API에서 조회한다. */
 export async function fetchRestrooms(
   bounds: MapBounds,
 ): Promise<Restroom[]> {
@@ -191,6 +202,7 @@ export async function fetchRestrooms(
   return payload;
 }
 
+/** 선택한 교차로의 실시간 보행 신호를 캐시 없이 조회한다. */
 export async function fetchPedestrianSignal(
   intersectionId: string,
 ): Promise<PedestrianSignal> {
@@ -209,6 +221,7 @@ export async function fetchPedestrianSignal(
   return payload;
 }
 
+/** 문의 내용을 내부 문의 API로 전송하고 결과 메시지를 반환한다. */
 export async function sendContactInquiry(
   contactRequest: ContactRequest,
 ): Promise<string> {

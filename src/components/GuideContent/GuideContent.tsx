@@ -5,6 +5,7 @@ import Image from "next/image";
 import styles from "./GuideContent.module.css";
 import { GUIDE_ITEMS, useGuideContent } from "./useGuideContent";
 
+/** 탭으로 구분된 이용 가이드 화면을 렌더링한다. */
 export function GuideContent() {
   const {
     activeGuide,

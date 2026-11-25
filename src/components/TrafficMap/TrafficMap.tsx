@@ -6,6 +6,7 @@ import { SignalCard } from "@/components/SignalCard/SignalCard";
 import { RestroomCard } from "@/components/RestroomCard/RestroomCard";
 import { FaqMenu } from "@/components/FaqMenu/FaqMenu";
 
+/** 지도, 위치 버튼, 레이어 탭, 상세 카드를 포함한 메인 지도 화면을 렌더링한다. */
 export function TrafficMap() {
   const {
     mapContainerRef,

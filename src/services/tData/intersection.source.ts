@@ -17,12 +17,14 @@ export type IntersectionDataSource = keyof typeof INTERSECTION_DATA_SOURCES;
 
 const DEFAULT_INTERSECTION_DATA_SOURCE: IntersectionDataSource = "latest";
 
+/** 문자열이 등록된 교차로 데이터 소스 이름인지 확인한다. */
 function isIntersectionDataSource(
   value: string,
 ): value is IntersectionDataSource {
   return value in INTERSECTION_DATA_SOURCES;
 }
 
+/** 환경변수로 선택한 교차로 스냅샷 원본 레코드를 반환한다. */
 export function getIntersectionSnapshot(): readonly IntersectionSnapshotRecord[] {
   // 1. 서버 환경변수가 없으면 최신 스냅샷을 기본으로 선택한다.
   // 새 배포에서는 추가 설정 없이 최신 데이터를 사용하기 위한 기본값이다.

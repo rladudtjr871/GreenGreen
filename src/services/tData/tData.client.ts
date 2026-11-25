@@ -14,6 +14,7 @@ export class TDataApiError extends Error {
   }
 }
 
+/** 서버 환경변수에서 T-Data API Key를 읽는다. */
 function getTDataApiKey(): string {
   // 비밀 키는 서버 환경에서만 읽고, 누락 시 외부 요청 전에 명확히 실패시킨다.
   // 외부 API 오류가 아닌 서버 설정 오류이므로 TDataApiError 대신 일반 Error로 던진다.
@@ -27,6 +28,7 @@ function getTDataApiKey(): string {
   return apiKey;
 }
 
+/** T-Data API를 호출하고 객체 레코드 배열만 반환한다. */
 export async function fetchTDataRecords(
   endpoint: string,
   apiKeyParameter: TDataApiKeyParameter,

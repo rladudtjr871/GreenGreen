@@ -9,6 +9,7 @@ if (!sourcePath) {
   throw new Error("병합할 휴지통 CSV 파일 경로를 입력해 주세요.");
 }
 
+/** 따옴표 필드를 고려해 CSV 문자열을 행과 열 배열로 파싱한다. */
 function parseCsv(source) {
   const rows = [];
   let row = [];
@@ -53,10 +54,12 @@ function parseCsv(source) {
   return rows;
 }
 
+/** 값을 문자열로 바꾸고 앞뒤 공백을 제거한다. */
 function cleanText(value) {
   return String(value ?? "").trim();
 }
 
+/** 이름과 좌표를 기준으로 휴지통의 고정 ID를 생성한다. */
 function createTrashBinId(trashBin) {
   const key = [
     trashBin.name,
@@ -67,6 +70,7 @@ function createTrashBinId(trashBin) {
   return `public-trash-bin-${digest}`;
 }
 
+/** 이름과 좌표로 중복 판별용 자연 키를 만든다. */
 function createNaturalKey({ name, coordinate }) {
   return [
     name.trim(),

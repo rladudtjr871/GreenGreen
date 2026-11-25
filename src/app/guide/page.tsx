@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   description: "GreenGreen의 신호등, 쓰레기통, 화장실 기능 사용법을 확인하세요.",
 };
 
+/** 이용 가이드 페이지를 렌더링한다. */
 export default function GuidePage() {
   return <GuideContent />;
 }

@@ -11,6 +11,7 @@ type AppProvidersProps = {
   children: ReactNode;
 };
 
+/** React Query Provider로 하위 컴포넌트를 감싼다. */
 export function AppProviders({ children }: AppProvidersProps) {
   const { queryClient } = useAppProviders();
 

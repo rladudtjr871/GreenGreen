@@ -26,6 +26,7 @@ const DIRECTION_FIELDS: Array<{
 
 const MAX_VALID_REMAINING_DECISECONDS = 36_000;
 
+/** T-Data 보행 신호 상태명을 내부 신호 상태로 변환한다. */
 function parseState(value: unknown): PedestrianSignalState {
   if (typeof value !== "string") {
     return "unknown";
@@ -50,6 +51,7 @@ function parseState(value: unknown): PedestrianSignalState {
   return "unknown";
 }
 
+/** 0.1초 단위 잔여시간을 안전 보정한 초 단위 값으로 변환한다. */
 function parseRemainingSeconds(value: unknown): number | null {
   const deciseconds = typeof value === "number" ? value : Number(value);
 
@@ -71,6 +73,7 @@ function parseRemainingSeconds(value: unknown): number | null {
   );
 }
 
+/** 장비 전송 시각 또는 등록 시각에서 신호 관측 시각을 추출한다. */
 function parseObservedAt(record: Record<string, unknown>): string | null {
   // 1. 장비 전송 UTC 시간을 우선 사용한다.
   // 데이터 생성 시각에 가장 가까워 stale 판단의 기준으로 적합하기 때문이다.
@@ -99,6 +102,7 @@ function parseObservedAt(record: Record<string, unknown>): string | null {
   return null;
 }
 
+/** T-Data 신호 레코드를 방향별 내부 보행 신호 모델로 변환한다. */
 export function mapTDataPedestrianSignal(
   record: Record<string, unknown>,
   fallbackIntersectionId: string,

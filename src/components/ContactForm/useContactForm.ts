@@ -11,6 +11,7 @@ import {
   type ContactFieldErrors,
 } from "@/types/contact";
 
+/** 문의 제목과 내용의 필수 입력과 길이 제한을 검사한다. */
 function validateContactForm(
   title: string,
   message: string,
@@ -34,6 +35,7 @@ function validateContactForm(
   return errors;
 }
 
+/** 문의 폼의 입력 상태, 검증, 전송, 닫기 동작을 관리한다. */
 export function useContactForm() {
   const router = useRouter();
   const [title, setTitle] = useState("");
@@ -45,6 +47,7 @@ export function useContactForm() {
   >("idle");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  /** 이전 화면이 서비스 내부면 뒤로 가고 아니면 지도 화면으로 이동한다. */
   const handleClose = () => {
     // 1. 같은 서비스 안에서 문의 화면으로 들어왔다면 원래 보던 지도 상태로 돌아간다.
     // 브라우저 뒤로가기를 우선해야 사용자가 보고 있던 지도 흐름을 자연스럽게 이어갈 수 있다.
@@ -61,16 +64,19 @@ export function useContactForm() {
     router.replace("/");
   };
 
+  /** 제목 입력값을 저장하고 제목 오류를 지운다. */
   const handleTitleChange = (event: ChangeEvent<HTMLInputElement>) => {
     setTitle(event.target.value);
     setFieldErrors((current) => ({ ...current, title: undefined }));
   };
 
+  /** 내용 입력값을 저장하고 내용 오류를 지운다. */
   const handleContentChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     setContent(event.target.value);
     setFieldErrors((current) => ({ ...current, message: undefined }));
   };
 
+  /** 입력을 검증한 뒤 문의를 전송하고 결과 메시지를 표시한다. */
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 

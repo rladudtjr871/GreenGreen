@@ -23,6 +23,7 @@ type SignalCardProps = {
   onAutoRefresh: () => void;
 };
 
+/** 선택한 교차로의 방향별 보행 신호와 안전 안내를 렌더링한다. */
 export function SignalCard({
   intersection,
   signal,

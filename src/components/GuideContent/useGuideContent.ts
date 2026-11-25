@@ -69,6 +69,7 @@ export const GUIDE_ITEMS: GuideItem[] = [
   },
 ];
 
+/** 이용 가이드의 활성 탭, 키보드 탐색, 닫기 동작을 관리한다. */
 export function useGuideContent() {
   const router = useRouter();
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -76,6 +77,7 @@ export function useGuideContent() {
   const activeGuide =
     GUIDE_ITEMS.find((item) => item.id === activeTab) ?? GUIDE_ITEMS[0];
 
+  /** 이전 화면이 서비스 내부면 뒤로 가고 아니면 지도 화면으로 이동한다. */
   const handleClose = () => {
     // 1. 서비스 내부에서 가이드로 이동했다면 이전 지도 화면을 그대로 복원한다.
     // 지도 중심과 탭 상태가 브라우저 기록에 남아 있을 수 있으므로 뒤로가기를 우선한다.
@@ -92,6 +94,7 @@ export function useGuideContent() {
     router.replace("/");
   };
 
+  /** 방향키와 Home, End 키로 가이드 탭 사이를 이동한다. */
   const handleTabKeyDown = (
     event: KeyboardEvent<HTMLButtonElement>,
     currentIndex: number,

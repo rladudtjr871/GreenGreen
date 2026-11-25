@@ -21,6 +21,7 @@ const STATE_LABELS: Record<PedestrianSignalState, string> = {
   unknown: "정보 없음",
 };
 
+/** 초 단위 잔여시간을 분과 초 표시 문자열로 변환한다. */
 function formatRemainingTime(totalSeconds: number): string {
   // 1. 전체 초를 분과 나머지 초로 나눈다.
   // API 값이 60초를 넘어도 사용자가 시간을 빠르게 파악할 수 있게 하기 위함이다.
@@ -32,6 +33,7 @@ function formatRemainingTime(totalSeconds: number): string {
   return minutes > 0 ? `${minutes}분 ${seconds}초` : `${seconds}초`;
 }
 
+/** 신호 카운트다운, stale 판단, 자동 및 수동 재조회 시점을 관리한다. */
 export function useSignalCard(
   signal: PedestrianSignal | undefined,
   onAutoRefresh: () => void,
@@ -42,6 +44,7 @@ export function useSignalCard(
   const isZeroRetryingRef = useRef(false);
   const refreshCooldownTimerRef = useRef<number | null>(null);
 
+  /** 쿨다운 중이 아닐 때만 수동 신호 새로고침을 요청한다. */
   const handleRefresh = () => {
     // 1. 상태 반영 전 연속 클릭도 막을 수 있도록 타이머 참조를 먼저 잠근다.
     // 자동 재조회와는 별개로 사용자의 수동 호출만 5초에 한 번 허용하기 위한 처리다.

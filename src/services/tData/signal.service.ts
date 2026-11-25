@@ -4,6 +4,7 @@ import type { PedestrianSignal } from "@/types/signal";
 
 const SIGNAL_ENDPOINT = "v2xSignalPhaseTimingFusionCurrentInfo/1.0";
 
+/** T-Data에서 교차로 한 곳의 실시간 보행 신호를 조회한다. */
 export async function getPedestrianSignal(
   intersectionId: string,
 ): Promise<PedestrianSignal | null> {

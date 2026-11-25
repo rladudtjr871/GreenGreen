@@ -9,6 +9,7 @@ const intersections: Intersection[] = getIntersectionSnapshot()
   .map((record) => mapTDataIntersection(record))
   .filter((intersection): intersection is Intersection => intersection !== null);
 
+/** 스냅샷에서 지도 경계 안의 교차로만 반환한다. */
 export async function getIntersectionsInBounds(
   bounds: MapBounds,
 ): Promise<Intersection[]> {

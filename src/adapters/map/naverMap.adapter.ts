@@ -234,14 +234,17 @@ export type NaverMapController = {
 
 let sdkLoadingPromise: Promise<NaverMapsSdk> | null = null;
 
+/** 전역 window에 로드된 NAVER Maps SDK 객체를 반환한다. */
 function getNaverMapsSdk(): NaverMapsSdk | undefined {
   return (window as NaverWindow).naver?.maps;
 }
 
+/** Geocoder 모듈까지 준비될 때까지 기다린 뒤 SDK를 반환한다. */
 function waitForNaverMapsGeocoder(): Promise<NaverMapsSdk> {
   return new Promise((resolve, reject) => {
     const deadline = Date.now() + 10_000;
 
+    /** Geocoder 준비 여부를 확인하고 시간 안에 준비되지 않으면 다시 확인을 예약한다. */
     const checkService = () => {
       // 1. 본체 뒤에 비동기로 추가되는 Geocoder 모듈까지 준비됐는지 확인한다.
       // maps.js의 load 이벤트만 기다리면 Service가 아직 없는 짧은 경쟁 상태가 생길 수 있다.
@@ -266,6 +269,7 @@ function waitForNaverMapsGeocoder(): Promise<NaverMapsSdk> {
   });
 }
 
+/** 선택 여부와 신호 상태에 맞는 교차로 마커 HTML을 생성한다. */
 function createIntersectionMarkerContent(
   isSelected: boolean,
   selectedSignal: PedestrianSignal | null,
@@ -303,6 +307,7 @@ function createIntersectionMarkerContent(
   return `<div style="position:relative;width:92px;height:92px"><div style="position:absolute;top:29px;left:29px">${trafficLight}</div>${crosswalkBars}</div>`;
 }
 
+/** 마커 HTML에 넣을 외부 문자열의 특수문자를 escape 처리한다. */
 function escapeMarkerText(value: string): string {
   return value.replace(
     /[&<>'"]/g,
@@ -317,6 +322,7 @@ function escapeMarkerText(value: string): string {
   );
 }
 
+/** 이름 라벨을 포함한 휴지통 마커 HTML을 생성한다. */
 function createTrashBinMarkerContent(name: string | null): string {
   const label = name
     ? `<span style="position:absolute;bottom:38px;left:50%;max-width:220px;padding:7px 10px;overflow:hidden;border:1px solid #d8dcda;border-radius:9px;background:rgba(255,255,255,.96);box-shadow:0 5px 16px rgba(42,48,45,.2);color:#333b37;font-size:12px;font-weight:700;line-height:1.35;text-overflow:ellipsis;white-space:nowrap;transform:translateX(-50%);pointer-events:none">${escapeMarkerText(name)}</span>`
@@ -325,6 +331,7 @@ function createTrashBinMarkerContent(name: string | null): string {
   return `<div style="position:relative;width:30px;height:30px">${label}<div aria-hidden="true" style="display:grid;width:30px;height:30px;place-items:center;border:3px solid white;border-radius:11px;background:#68716d;box-shadow:0 5px 14px rgba(43,50,46,.3)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"></path><path d="M9 7V4h6v3"></path><path d="M7 7l1 13h8l1-13"></path><path d="M10 11v5M14 11v5"></path></svg></div></div>`;
 }
 
+/** 선택 여부에 맞는 화장실 마커 HTML을 생성한다. */
 function createRestroomMarkerContent(isSelected: boolean): string {
   const background = isSelected ? "#125fa8" : "#3979b8";
   const size = isSelected ? 34 : 30;
@@ -333,6 +340,7 @@ function createRestroomMarkerContent(isSelected: boolean): string {
   return `<div aria-hidden="true" style="display:grid;width:${size}px;height:${size}px;place-items:center;border:3px solid white;border-radius:11px;background:${background};box-shadow:0 5px 14px rgba(28,64,99,.32)"><svg width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24" fill="white"><circle cx="6.5" cy="4.5" r="2.2"></circle><path d="M3.2 9.2c0-1.5 1.2-2.7 2.7-2.7h1.2c1.5 0 2.7 1.2 2.7 2.7v3.9H8.5V21h-4v-7.9H3.2V9.2Z"></path><circle cx="17.5" cy="4.5" r="2.2"></circle><path d="M14.8 9.1c.2-1.5 1.3-2.6 2.7-2.6s2.5 1.1 2.7 2.6l1.1 7h-2V21h-3.6v-4.9h-2l1.1-7Z"></path><rect x="11.35" y="3" width="1.3" height="18" rx=".65" opacity=".72"></rect></svg></div>`;
 }
 
+/** 기기 방향을 표시하는 현재 위치 마커 HTML을 생성한다. */
 function createCurrentLocationMarkerContent(
   heading: number | null | undefined,
 ): string {
@@ -355,6 +363,7 @@ function createCurrentLocationMarkerContent(
   return `<div aria-hidden="true" style="width:72px;height:72px;pointer-events:none"><svg width="72" height="72" viewBox="0 0 72 72" overflow="visible"><defs><linearGradient id="current-location-heading-gradient" x1="36" y1="36" x2="36" y2="3" gradientUnits="userSpaceOnUse"><stop stop-color="#03c75a" stop-opacity=".42"></stop><stop offset="1" stop-color="#03c75a" stop-opacity=".06"></stop></linearGradient></defs>${headingSector}<circle cx="36" cy="36" r="11" fill="white" style="filter:drop-shadow(0 2px 5px rgba(0,0,0,.28))"></circle><circle cx="36" cy="36" r="7" fill="#03c75a"></circle></svg></div>`;
 }
 
+/** NAVER Maps SDK 스크립트를 한 번만 로드하고 준비된 SDK를 반환한다. */
 export function loadNaverMapsSdk(clientId: string): Promise<NaverMapsSdk> {
   // 1. Geocoder까지 로드된 SDK가 있으면 같은 전역 객체를 재사용한다.
   // 페이지 전환이나 재마운트 때 스크립트를 중복 삽입하지 않기 위함이다.
@@ -371,12 +380,14 @@ export function loadNaverMapsSdk(clientId: string): Promise<NaverMapsSdk> {
   }
 
   sdkLoadingPromise = new Promise<NaverMapsSdk>((resolve, reject) => {
+    /** SDK 본체 로드 후 Geocoder 준비를 기다려 로드를 완료한다. */
     const handleLoad = () => {
       // 3. NAVER가 본체 load 뒤에 삽입하는 Geocoder 스크립트까지 기다린다.
       // Reverse Geocoding과 주소 변환이 초기 로드 속도에 따라 실패하지 않게 한다.
       void waitForNaverMapsGeocoder().then(resolve).catch(handleError);
     };
 
+    /** SDK 로드 실패 시 로딩 상태를 초기화하고 오류로 종료한다. */
     const handleError = () => {
       sdkLoadingPromise = null;
       reject(new Error("NAVER Maps SDK를 불러오지 못했습니다."));
@@ -414,6 +425,7 @@ export function loadNaverMapsSdk(clientId: string): Promise<NaverMapsSdk> {
   return sdkLoadingPromise;
 }
 
+/** NAVER 지도를 생성하고 프로젝트 타입 기반의 지도 컨트롤러를 반환한다. */
 export function createNaverMap(
   container: HTMLElement,
   initialCoordinate: MapCoordinate,
@@ -452,11 +464,13 @@ export function createNaverMap(
     restroom: Restroom;
   }>();
 
+  /** 현재 위치 마커를 지도에서 제거한다. */
   const clearCurrentLocationMarker = () => {
     currentLocationMarker?.setMap(null);
     currentLocationMarker = null;
   };
 
+  /** 교차로 마커와 클릭 리스너를 모두 제거한다. */
   const clearIntersectionMarkers = () => {
     // 마커뿐 아니라 각 클릭 리스너도 함께 제거해야 재조회 시 핸들러가 누적되지 않는다.
     intersectionMarkers.forEach(({ marker, clickListener }) => {
@@ -466,6 +480,7 @@ export function createNaverMap(
     intersectionMarkers = [];
   };
 
+  /** 휴지통 마커와 클릭 리스너를 모두 제거한다. */
   const clearTrashBinMarkers = () => {
     trashBinMarkers.forEach(({ marker, clickListener }) => {
       sdk.Event.removeListener(clickListener);
@@ -474,6 +489,7 @@ export function createNaverMap(
     trashBinMarkers.clear();
   };
 
+  /** 화장실 마커와 클릭 리스너를 모두 제거한다. */
   const clearRestroomMarkers = () => {
     restroomMarkers.forEach(({ marker, clickListener }) => {
       sdk.Event.removeListener(clickListener);
@@ -482,6 +498,7 @@ export function createNaverMap(
     restroomMarkers.clear();
   };
 
+  /** 선택 상태에 맞게 휴지통 마커의 모양을 다시 그린다. */
   const updateTrashBinMarkerAppearance = (trashBinId: string) => {
     const entry = trashBinMarkers.get(trashBinId);
 
@@ -499,6 +516,7 @@ export function createNaverMap(
     entry.marker.setZIndex(isSelected ? 80 : 40);
   };
 
+  /** 휴지통 마커를 지도에 추가하고 클릭 시 선택 상태를 전환한다. */
   const addTrashBinMarker = (trashBin: TrashBin) => {
     const isSelected = trashBin.trashBinId === selectedTrashBinId;
     const marker = new sdk.Marker({
@@ -541,6 +559,7 @@ export function createNaverMap(
     });
   };
 
+  /** 화장실 마커를 지도에 추가하고 클릭 시 선택 콜백을 호출한다. */
   const addRestroomMarker = (
     restroom: Restroom,
     selectedRestroomId: string | null,
@@ -643,6 +662,7 @@ export function createNaverMap(
       // 1. 사용자 지도 조작을 훅에 그대로 전달한다.
       // 위치 모드에 따른 처리 여부는 훅이 판단하므로 어댑터는 SDK 이벤트 중계만 맡는다.
       // touchmove처럼 반복되는 이벤트도 전달되므로 훅의 처리는 중복 호출에 안전해야 한다.
+      /** 사용자 지도 조작 이벤트를 훅의 listener로 전달한다. */
       const handleUserMove = () => {
         listener();
       };

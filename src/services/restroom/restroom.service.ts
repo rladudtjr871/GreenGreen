@@ -4,6 +4,7 @@ import type { Restroom } from "@/types/restroom";
 
 const restrooms: Restroom[] = restroomSnapshot;
 
+/** 스냅샷에서 지도 경계 안의 화장실만 반환한다. */
 export async function getRestroomsInBounds(
   bounds: MapBounds,
 ): Promise<Restroom[]> {

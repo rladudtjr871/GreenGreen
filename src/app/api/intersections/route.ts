@@ -4,6 +4,7 @@ import { getIntersectionsInBounds } from "@/services/tData/intersection.service"
 import { toTDataErrorResponse } from "@/services/tData/tData.errorResponse";
 import type { MapBounds } from "@/types/map";
 
+/** 쿼리 문자열 값을 유한한 숫자로 변환하고 실패하면 null을 반환한다. */
 function parseCoordinate(value: string | null): number | null {
   if (value === null || value.trim() === "") {
     return null;
@@ -13,6 +14,7 @@ function parseCoordinate(value: string | null): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+/** 쿼리 문자열에서 지도 경계를 읽고 유효하지 않으면 null을 반환한다. */
 function parseBounds(searchParams: URLSearchParams): MapBounds | null {
   // 1. 네 좌표를 모두 숫자로 변환한다.
   const north = parseCoordinate(searchParams.get("north"));
@@ -40,6 +42,7 @@ function parseBounds(searchParams: URLSearchParams): MapBounds | null {
   return { north, east, south, west };
 }
 
+/** 지도 경계 안의 교차로 목록을 반환한다. */
 export async function GET(request: Request) {
   // 1. 요청 경계를 먼저 검증해 잘못된 입력은 서비스 계층까지 전달하지 않는다.
   const bounds = parseBounds(new URL(request.url).searchParams);

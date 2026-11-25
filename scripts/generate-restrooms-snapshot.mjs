@@ -8,6 +8,7 @@ if (!sourcePath) {
   throw new Error("원본 JSON 파일 경로를 입력해 주세요.");
 }
 
+/** 파이프로 구분된 원본 텍스트를 정리해 표시용 문자열 또는 null로 변환한다. */
 function cleanText(value) {
   const normalized = String(value ?? "")
     .split("|")

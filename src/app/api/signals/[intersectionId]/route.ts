@@ -11,6 +11,7 @@ type SignalRouteContext = {
   }>;
 };
 
+/** 선택한 교차로의 실시간 보행 신호를 캐시 없이 반환한다. */
 export async function GET(_request: Request, context: SignalRouteContext) {
   // 1. 경로 ID를 검증해 의도하지 않은 값이 외부 API 파라미터로 전달되지 않게 한다.
   const { intersectionId } = await context.params;

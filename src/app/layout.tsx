@@ -65,6 +65,7 @@ export const viewport: Viewport = {
   themeColor: SITE_THEME_COLOR,
 };
 
+/** 공통 Provider로 모든 페이지를 감싸는 루트 레이아웃을 렌더링한다. */
 export default function RootLayout({
   children,
 }: Readonly<{

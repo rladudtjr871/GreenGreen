@@ -7,6 +7,7 @@ import {
   SITE_TITLE,
 } from "@/constants/site";
 
+/** 홈 화면 설치용 웹 앱 manifest를 생성한다. */
 export default function manifest(): MetadataRoute.Manifest {
   // 홈 화면에 추가했을 때 브라우저 주소창 없이 앱처럼 열리도록 standalone으로 설정한다.
   // 아이콘은 Android가 사용하는 일반(any) 아이콘과, 기기별 모양으로 잘려도 신호등이 보이도록

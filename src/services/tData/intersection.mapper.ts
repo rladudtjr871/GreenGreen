@@ -1,10 +1,12 @@
 import type { Intersection } from "@/types/intersection";
 
+/** 값을 유한한 숫자로 변환하고 실패하면 null을 반환한다. */
 function toFiniteNumber(value: unknown): number | null {
   const parsed = typeof value === "number" ? value : Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+/** T-Data 교차로 레코드를 내부 교차로 모델로 변환한다. */
 export function mapTDataIntersection(
   record: Record<string, unknown>,
 ): Intersection | null {

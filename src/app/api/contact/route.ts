@@ -11,10 +11,12 @@ import {
   type ContactRequest,
 } from "@/types/contact";
 
+/** 값이 배열이 아닌 일반 객체인지 확인한다. */
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/** 문의 요청 본문을 검증하고 정제된 데이터와 필드별 오류를 반환한다. */
 function validateContactRequest(value: unknown): {
   data: ContactRequest | null;
   errors: ContactFieldErrors;
@@ -50,6 +52,7 @@ function validateContactRequest(value: unknown): {
   };
 }
 
+/** 검증된 문의를 고정 템플릿 메일로 전송한다. */
 export async function POST(request: Request) {
   let body: unknown;
 

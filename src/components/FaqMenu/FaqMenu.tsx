@@ -5,6 +5,7 @@ import Link from "next/link";
 import styles from "./FaqMenu.module.css";
 import { useFaqMenu } from "./useFaqMenu";
 
+/** 이용 가이드와 문의 링크를 담은 FAQ 메뉴를 렌더링한다. */
 export function FaqMenu() {
   const { isOpen, menuRef, toggleMenu } = useFaqMenu();
 

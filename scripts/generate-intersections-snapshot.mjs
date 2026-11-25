@@ -9,6 +9,7 @@ if (!inputPath || !outputPath) {
   );
 }
 
+/** BOM 유무에 따라 UTF-8 또는 CP949로 CSV 버퍼를 문자열로 디코딩한다. */
 function decodeCsv(buffer) {
   // 1. UTF-8 BOM이 있으면 그대로 읽고, 없으면 T-Data 내려받기 파일의 CP949 인코딩으로 해석한다.
   // 원본 파일의 배포 시점에 따라 인코딩이 달라도 같은 생성 명령을 재사용하기 위한 분기다.
@@ -21,6 +22,7 @@ function decodeCsv(buffer) {
   return new TextDecoder(hasUtf8Bom ? "utf-8" : "euc-kr").decode(buffer);
 }
 
+/** 따옴표 필드를 고려해 구분자 텍스트를 행과 열 배열로 파싱한다. */
 function parseDelimitedText(text, delimiter) {
   const rows = [];
   let row = [];
@@ -68,6 +70,7 @@ function parseDelimitedText(text, delimiter) {
   return rows;
 }
 
+/** 소수점 배율이 어긋난 원본 좌표를 한국 범위로 보정하고 보정 여부와 함께 반환한다. */
 function normalizeKoreaCoordinate(rawValue, minimum, maximum) {
   let value = Number(rawValue);
   let scale = 1;
@@ -125,6 +128,7 @@ sourceRows.forEach((row, rowIndex) => {
     return;
   }
 
+  /** 헤더 이름으로 현재 행의 필드 값을 찾아 공백을 제거해 반환한다. */
   const readField = (fieldName) =>
     String(row[headerIndexes.get(fieldName)] ?? "").trim();
   const intersectionId = readField(fieldNames.id);

@@ -9,6 +9,7 @@ type TDataErrorResponseOptions = {
   fallbackMessage: string;
 };
 
+/** T-Data 관련 오류를 사용자용 메시지와 상태 코드의 응답으로 변환한다. */
 export function toTDataErrorResponse(
   error: unknown,
   { logLabel, fallbackMessage }: TDataErrorResponseOptions,

@@ -60,10 +60,12 @@ const LOCATION_ERROR_MESSAGES: Record<number, string> = {
   3: "위치 확인 시간이 초과되었습니다. 다시 시도해 주세요.",
 };
 
+/** 방향 각도를 0~360도 범위로 정규화한다. */
 function normalizeHeading(heading: number): number {
   return ((heading % 360) + 360) % 360;
 }
 
+/** 방향 센서 이벤트에서 북쪽 기준 기기 방향을 계산한다. */
 function getDeviceHeading(event: CompassOrientationEvent): number | null {
   // 1. iOS Safari가 제공하는 실제 나침반 방향을 우선 사용한다.
   // webkitCompassHeading은 북쪽 0도에서 시계 방향으로 증가해 마커 회전에 바로 사용할 수 있다.
@@ -113,16 +115,19 @@ function getDeviceHeading(event: CompassOrientationEvent): number | null {
   );
 }
 
+/** 두 방향 각도 사이의 최소 차이를 계산한다. */
 function getHeadingDifference(previous: number, next: number): number {
   const difference = Math.abs(previous - next);
   return Math.min(difference, 360 - difference);
 }
 
+/** Query Key 안정화를 위해 좌표를 약 10m 단위로 반올림한다. */
 function normalizeCoordinate(value: number): number {
   // 좌표의 미세한 변화마다 새 Query Key가 생기지 않도록 약 10m 단위로 맞춘다.
   return Math.round(value * 10_000) / 10_000;
 }
 
+/** 지도 경계의 네 좌표를 정규화한다. */
 function normalizeBounds(bounds: MapBounds): MapBounds {
   return {
     north: normalizeCoordinate(bounds.north),
@@ -132,6 +137,7 @@ function normalizeBounds(bounds: MapBounds): MapBounds {
   };
 }
 
+/** 지도 경계의 중심 좌표를 계산한다. */
 function getBoundsCenter(bounds: MapBounds): MapCoordinate {
   return {
     latitude: (bounds.north + bounds.south) / 2,
@@ -139,12 +145,14 @@ function getBoundsCenter(bounds: MapBounds): MapCoordinate {
   };
 }
 
+/** 지역 판별 결과 재사용을 위해 좌표를 약 100m 단위 캐시 키로 만든다. */
 function getRegionCacheKey(coordinate: MapCoordinate): string {
   // 약 100m 단위의 중심 좌표는 같은 지역 판별 결과를 재사용한다.
   // 작은 지도 이동마다 Reverse Geocoding 사용량이 늘어나는 것을 막기 위한 정규화다.
   return `${coordinate.latitude.toFixed(3)},${coordinate.longitude.toFixed(3)}`;
 }
 
+/** 지도 초기화, 현재 위치, 레이어 조회, 선택 상태, 신호 조회를 관리한다. */
 export function useTrafficMap() {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapControllerRef = useRef<NaverMapController | null>(null);
@@ -176,12 +184,14 @@ export function useTrafficMap() {
     useState<ServiceAreaStatus>("checking");
   const [unsupportedRegionName, setUnsupportedRegionName] = useState("");
 
+  /** 위치 모드 상태와 ref를 함께 갱신한다. */
   const updateLocationMode = useCallback((mode: LocationMode) => {
     // 상태와 ref를 같은 시점에 갱신해 비동기 위치 콜백도 최신 모드를 확인하게 한다.
     locationModeRef.current = mode;
     setLocationMode(mode);
   }, []);
 
+  /** 기기 방향 이벤트 구독과 예약된 방향 갱신을 해제한다. */
   const stopDeviceOrientationTracking = useCallback(() => {
     // 1. 등록한 방향 이벤트를 해제해 고정 모드 밖에서 센서를 계속 사용하지 않게 한다.
     deviceOrientationCleanupRef.current?.();
@@ -198,6 +208,7 @@ export function useTrafficMap() {
     renderedDeviceHeadingRef.current = null;
   }, []);
 
+  /** 권한을 확인한 뒤 기기 방향 이벤트 구독을 시작한다. */
   const startDeviceOrientationTracking = useCallback(async () => {
     if (!("DeviceOrientationEvent" in window)) {
       return;
@@ -225,6 +236,7 @@ export function useTrafficMap() {
       return;
     }
 
+    /** 위치 고정 중 기기 방향이 바뀌면 현재 위치 마커의 방향 갱신을 예약한다. */
     const handleOrientation = (event: DeviceOrientationEvent) => {
       const heading = getDeviceHeading(event as CompassOrientationEvent);
 
@@ -275,6 +287,7 @@ export function useTrafficMap() {
     };
   }, []);
 
+  /** 위치 watch와 기기 방향 추적을 모두 중지한다. */
   const stopLocationTracking = useCallback(() => {
     // 1. 활성 watch만 해제해 중복 구독과 해제 이후의 위치 콜백을 방지한다.
     if (geolocationWatchIdRef.current !== null) {
@@ -299,6 +312,7 @@ export function useTrafficMap() {
       return;
     }
 
+    /** NAVER 지도를 생성하고 지도 이벤트와 초기 조회를 연결한다. */
     const initializeMap = async () => {
       try {
         // 1. SDK를 먼저 준비한다.
@@ -320,6 +334,7 @@ export function useTrafficMap() {
         );
         mapControllerRef.current = controller;
 
+        /** 현재 지도 범위를 저장하고 중심 좌표의 서비스 지역 여부를 갱신한다. */
         const updateViewportAndRegion = async () => {
           // 1. 지도 범위를 먼저 반영하고 중심 좌표를 지역 판별 기준으로 사용한다.
           // 사용자가 GPS와 무관하게 지도를 직접 이동한 경우에도 같은 기준으로 처리하기 위함이다.
@@ -381,6 +396,7 @@ export function useTrafficMap() {
           }
         };
 
+        /** 지도 idle 이후 debounce를 거쳐 범위와 지역 갱신을 실행한다. */
         const updateViewport = () => {
           window.clearTimeout(debounceTimer);
           debounceTimer = window.setTimeout(() => {
@@ -509,10 +525,12 @@ export function useTrafficMap() {
     placeholderData: keepPreviousData,
   });
 
+  /** 지도에서 선택한 교차로를 저장한다. */
   const handleSelectIntersection = useCallback(
     (intersection: Intersection) => setSelectedIntersection(intersection),
     [],
   );
+  /** 지도에서 선택한 화장실을 저장한다. */
   const handleSelectRestroom = useCallback(
     (restroom: Restroom) => setSelectedRestroom(restroom),
     [],
@@ -536,6 +554,7 @@ export function useTrafficMap() {
     staleTime: 3_000,
   });
   const refetchSignal = signalQuery.refetch;
+  /** 진행 중인 요청을 공유하며 선택한 교차로의 신호를 다시 조회한다. */
   const handleRefreshSignal = useCallback(() => {
     // 자동 동기화가 겹치면 진행 중인 요청을 취소하지 않고 기존 요청을 공유한다.
     void refetchSignal({ cancelRefetch: false });
@@ -620,6 +639,7 @@ export function useTrafficMap() {
     trashBinsQuery.data,
   ]);
 
+  /** 위치 버튼 클릭마다 현재 위치, 위치 고정, 해제 순으로 모드를 전환한다. */
   const handleCurrentLocation = useCallback(() => {
     // 1. 브라우저와 지도 준비 상태를 확인한다.
     // 위치 권한을 요청한 뒤 지도가 없어 결과를 쓰지 못하는 상황을 피한다.
@@ -646,6 +666,7 @@ export function useTrafficMap() {
       return;
     }
 
+    /** 위치 조회 실패 시 추적을 해제하고 오류 메시지를 표시한다. */
     const handlePositionError = ({ code }: GeolocationPositionError) => {
       stopLocationTracking();
       controller.clearCurrentLocation();

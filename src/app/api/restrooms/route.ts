@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getRestroomsInBounds } from "@/services/restroom/restroom.service";
 import type { MapBounds } from "@/types/map";
 
+/** 쿼리 문자열 값을 유한한 숫자로 변환하고 실패하면 null을 반환한다. */
 function parseCoordinate(value: string | null): number | null {
   if (value === null || value.trim() === "") {
     return null;
@@ -12,6 +13,7 @@ function parseCoordinate(value: string | null): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+/** 쿼리 문자열에서 지도 경계를 읽고 유효하지 않으면 null을 반환한다. */
 function parseBounds(searchParams: URLSearchParams): MapBounds | null {
   // 1. 네 방향 좌표가 모두 유효한 숫자인지 확인한다.
   // 일부 값만 있는 요청이 전체 스냅샷 조회로 이어지는 것을 방지한다.
@@ -40,6 +42,7 @@ function parseBounds(searchParams: URLSearchParams): MapBounds | null {
   return { north, east, south, west };
 }
 
+/** 지도 경계 안의 공중화장실 목록을 반환한다. */
 export async function GET(request: Request) {
   // 1. 요청 경계를 검증한 뒤에만 정적 스냅샷을 조회한다.
   // 잘못된 요청에 전체 데이터를 반환하지 않도록 API 경계에서 차단한다.

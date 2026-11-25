@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getTrashBinsInBounds } from "@/services/trashBin/trashBin.service";
 import type { MapBounds } from "@/types/map";
 
+/** 쿼리 문자열 값을 유한한 숫자로 변환하고 실패하면 null을 반환한다. */
 function parseCoordinate(value: string | null): number | null {
   if (value === null || value.trim() === "") {
     return null;
@@ -12,6 +13,7 @@ function parseCoordinate(value: string | null): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+/** 쿼리 문자열에서 지도 경계를 읽고 유효하지 않으면 null을 반환한다. */
 function parseBounds(searchParams: URLSearchParams): MapBounds | null {
   // 1. 네 방향 좌표를 숫자로 변환한다.
   // 일부 값만 누락된 요청이 전체 스냅샷 조회로 이어지지 않도록 모두 확인한다.
@@ -40,6 +42,7 @@ function parseBounds(searchParams: URLSearchParams): MapBounds | null {
   return { north, east, south, west };
 }
 
+/** 지도 경계 안의 휴지통 목록을 데이터 버전별로 반환한다. */
 export async function GET(request: Request) {
   // 1. 요청 경계를 검증한 뒤에만 스냅샷을 조회한다.
   // 잘못된 입력이 전국 데이터 응답으로 확대되는 것을 차단하기 위한 순서다.
