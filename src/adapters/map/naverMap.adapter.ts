@@ -444,7 +444,8 @@ export function createNaverMap(
     pinchZoom: true,
     scaleControl: false,
     logoControl: true,
-    mapDataControl: false,
+    // NAVER 지도 이용 조건에 따라 로고와 지도 데이터 저작권 표시는 숨기지 않는다.
+    mapDataControl: true,
   });
 
   let currentLocationMarker: NaverMarker | null = null;
