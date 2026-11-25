@@ -156,6 +156,10 @@ export function SignalCard({
         </p>
         <p>횡단 시 반드시 실제 신호등을 확인하세요.</p>
       </div>
+
+      <p className={styles.dataSource}>
+        신호·교차로 정보: 서울교통빅데이터플랫폼(T-Data)
+      </p>
     </aside>
   );
 }
