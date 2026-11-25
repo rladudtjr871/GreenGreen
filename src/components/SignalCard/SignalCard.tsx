@@ -158,7 +158,7 @@ export function SignalCard({
       </div>
 
       <p className={styles.dataSource}>
-        신호·교차로 정보: 서울교통빅데이터플랫폼(T-Data)
+        정보 제공: 서울교통빅데이터플랫폼(T-Data)
       </p>
     </aside>
   );
