@@ -1,11 +1,15 @@
 import type { Metadata, Viewport } from "next";
 
 import { AppProviders } from "@/components/AppProviders/AppProviders";
+import {
+  SITE_DESCRIPTION,
+  SITE_SHORT_NAME,
+  SITE_THEME_COLOR,
+  SITE_TITLE,
+} from "@/constants/site";
 
 import "./globals.css";
 
-const SITE_TITLE = "GreenGreen | 서울 보행자 신호 지도";
-const SITE_DESCRIPTION = "내 주변의 보행자 신호를 지도에서 확인하세요.";
 const SHARE_IMAGE_PATH = "/images/greengreen-share.png";
 
 // 1. 명시한 서비스 주소를 우선하고, 배포 환경에서는 Vercel이 제공하는 주소를 사용한다.
@@ -29,13 +33,13 @@ export const metadata: Metadata = {
   // iOS는 manifest 대신 이 값으로 홈 화면 아이콘 아래 이름과 단독 실행 여부를 정한다.
   appleWebApp: {
     capable: true,
-    title: "GreenGreen",
+    title: SITE_SHORT_NAME,
     statusBarStyle: "default",
   },
   openGraph: {
     type: "website",
     locale: "ko_KR",
-    siteName: "GreenGreen",
+    siteName: SITE_SHORT_NAME,
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
     images: [
@@ -58,7 +62,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#03c75a",
+  themeColor: SITE_THEME_COLOR,
 };
 
 export default function RootLayout({

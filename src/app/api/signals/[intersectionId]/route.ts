@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getPedestrianSignal } from "@/services/tData/signal.service";
-import { TDataApiError } from "@/services/tData/tData.client";
+import { toTDataErrorResponse } from "@/services/tData/tData.errorResponse";
 
 type SignalRouteContext = {
   /** 동적 경로에서 전달되는 T-Data 교차로 식별자다. */
@@ -39,22 +39,10 @@ export async function GET(_request: Request, context: SignalRouteContext) {
       headers: { "Cache-Control": "no-store" },
     });
   } catch (error) {
-    // 4. 사용자용으로 정제된 T-Data 오류만 메시지와 상태 코드를 그대로 전달한다.
-    // 서버 설정 오류(500)는 환경변수 이름 같은 내부 정보를 담고 있어 노출하지 않는다.
-    if (error instanceof TDataApiError && error.status !== 500) {
-      return NextResponse.json(
-        { message: error.message },
-        { status: error.status },
-      );
-    }
-
-    // 5. 그 밖의 오류는 원인을 서버 로그에만 남기고 클라이언트에는 공통 메시지를 반환한다.
-    // 예기치 않은 Error의 message에는 구현 세부사항이 포함될 수 있기 때문이다.
-    console.error("Unexpected signal route error.", error);
-
-    return NextResponse.json(
-      { message: "신호정보를 가져오는 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요." },
-      { status: 500 },
-    );
+    // 4. T-Data 오류는 공통 변환기로 사용자용 메시지와 상태 코드만 반환한다.
+    return toTDataErrorResponse(error, {
+      logLabel: "Unexpected signal route error.",
+      fallbackMessage: "신호정보를 가져오는 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.",
+    });
   }
 }

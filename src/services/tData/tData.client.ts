@@ -16,10 +16,12 @@ export class TDataApiError extends Error {
 
 function getTDataApiKey(): string {
   // 비밀 키는 서버 환경에서만 읽고, 누락 시 외부 요청 전에 명확히 실패시킨다.
+  // 외부 API 오류가 아닌 서버 설정 오류이므로 TDataApiError 대신 일반 Error로 던진다.
+  // TDataApiError의 message는 항상 사용자에게 그대로 보여줘도 안전해야 하기 때문이다.
   const apiKey = process.env.TDATA_API_KEY?.trim();
 
   if (!apiKey) {
-    throw new TDataApiError("TDATA_API_KEY가 설정되지 않았습니다.", 500);
+    throw new Error("TDATA_API_KEY is not configured.");
   }
 
   return apiKey;

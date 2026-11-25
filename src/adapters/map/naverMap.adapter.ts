@@ -640,23 +640,17 @@ export function createNaverMap(
       return () => sdk.Event.removeListener(eventListener);
     },
     onUserMove(listener) {
+      // 1. 사용자 지도 조작을 훅에 그대로 전달한다.
+      // 위치 모드에 따른 처리 여부는 훅이 판단하므로 어댑터는 SDK 이벤트 중계만 맡는다.
+      // touchmove처럼 반복되는 이벤트도 전달되므로 훅의 처리는 중복 호출에 안전해야 한다.
       const handleUserMove = () => {
-        // 1. 현재 위치 마커가 없으면 위치 모드와 무관한 일반 지도 조작이므로 알리지 않는다.
-        if (!currentLocationMarker) {
-          return;
-        }
-
-        // 2. 마커는 지도에 그대로 두고 훅에 사용자 이동만 알린다.
-        // 마커 해제는 위치 버튼의 세 번째 클릭으로만 수행하고,
-        // 훅은 위치 고정 중일 때 지도 중심 따라가기만 멈춘다.
-        // touchmove처럼 반복되는 이벤트도 전달되므로 훅의 처리는 중복 호출에 안전해야 한다.
         listener();
       };
       const eventListeners = ["dragstart", "touchmove", "pinchstart"].map(
         (eventName) => sdk.Event.addListener(map, eventName, handleUserMove),
       );
 
-      // 4. SDK 지도 이벤트에서 구분하기 어려운 휠·더블클릭 확대도 DOM 입력 시점에 감지한다.
+      // 2. SDK 지도 이벤트에서 구분하기 어려운 휠·더블클릭 확대도 DOM 입력 시점에 감지한다.
       // 프로그램이 위치를 따라가며 setCenter를 호출하는 동작은 사용자 조작으로 오인하지 않는다.
       container.addEventListener("wheel", handleUserMove, { passive: true });
       container.addEventListener("dblclick", handleUserMove);
