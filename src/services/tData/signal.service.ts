@@ -20,7 +20,6 @@ export async function getPedestrianSignal(
     },
     0,
   );
-console.log('recordsrecordsrecords', records)
   // 2. 외부 레코드가 있을 때만 내부 모델로 변환한다.
   // 빈 응답은 Route Handler가 404로 구분할 수 있도록 null로 유지한다.
   const record = records[0];
