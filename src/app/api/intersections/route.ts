@@ -1,58 +1,22 @@
 import { NextResponse } from "next/server";
 
+import { parseMapBoundsQuery } from "@/services/map/mapBounds";
 import { getIntersectionsInBounds } from "@/services/tData/intersection.service";
 import { toTDataErrorResponse } from "@/services/tData/tData.errorResponse";
-import type { MapBounds } from "@/types/map";
-
-/** 쿼리 문자열 값을 유한한 숫자로 변환하고 실패하면 null을 반환한다. */
-function parseCoordinate(value: string | null): number | null {
-  if (value === null || value.trim() === "") {
-    return null;
-  }
-
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-/** 쿼리 문자열에서 지도 경계를 읽고 유효하지 않으면 null을 반환한다. */
-function parseBounds(searchParams: URLSearchParams): MapBounds | null {
-  // 1. 네 좌표를 모두 숫자로 변환한다.
-  const north = parseCoordinate(searchParams.get("north"));
-  const east = parseCoordinate(searchParams.get("east"));
-  const south = parseCoordinate(searchParams.get("south"));
-  const west = parseCoordinate(searchParams.get("west"));
-
-  // 2. 누락 값, 뒤집힌 경계, 좌표 범위를 함께 검증한다.
-  // 유효하지 않은 범위로 전체 데이터가 반환되는 상황을 차단한다.
-  if (
-    north === null ||
-    east === null ||
-    south === null ||
-    west === null ||
-    north <= south ||
-    east <= west ||
-    north > 90 ||
-    south < -90 ||
-    east > 180 ||
-    west < -180
-  ) {
-    return null;
-  }
-
-  return { north, east, south, west };
-}
 
 /** 지도 경계 안의 교차로 목록을 반환한다. */
 export async function GET(request: Request) {
   // 1. 요청 경계를 먼저 검증해 잘못된 입력은 서비스 계층까지 전달하지 않는다.
-  const bounds = parseBounds(new URL(request.url).searchParams);
+  const boundsResult = parseMapBoundsQuery(new URL(request.url).searchParams);
 
-  if (!bounds) {
+  if (!boundsResult.ok) {
     return NextResponse.json(
-      { message: "유효한 지도 범위를 입력해 주세요." },
+      { message: boundsResult.message },
       { status: 400 },
     );
   }
+
+  const { bounds } = boundsResult;
 
   try {
     // 2. 현재 화면 안의 교차로만 조회한다.
