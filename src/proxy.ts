@@ -39,13 +39,14 @@ export async function proxy(request: NextRequest) {
   }
 
   // 3. 스크립트에서 읽을 수 없는 httpOnly 쿠키로 저장한다.
-  // 같은 사이트 요청에만 전송되도록 SameSite=Strict를 사용한다.
+  // SameSite=Lax는 외부 링크로 들어오는 페이지 이동에는 쿠키를 보내 기존 토큰을 유지하고,
+  // 다른 사이트가 보내는 fetch·이미지 등 하위 요청에는 쿠키를 보내지 않는다.
   response.cookies.set({
     name: API_ACCESS_TOKEN_COOKIE_NAME,
     value: nextToken,
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    sameSite: "lax",
     path: "/",
     maxAge: API_ACCESS_TOKEN_TTL_SECONDS,
   });
