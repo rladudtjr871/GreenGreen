@@ -206,16 +206,17 @@ export async function fetchRestrooms(
 export async function fetchPedestrianSignal(
   intersectionId: string,
 ): Promise<PedestrianSignal> {
-  // 1. 요청을 보내기 직전의 브라우저 시각을 카운트다운 기준으로 기록한다.
-  // 서버 시계로 찍힌 receivedAt을 기기 시계와 비교하면 두 시계 차이만큼 카운트다운이 멈추거나 건너뛴다.
-  // 응답 도착 시각보다 이른 요청 시각을 쓰면 왕복 지연만큼 잔여시간이 짧게 계산되어 실제보다 길게 안내하지 않는다.
-  const requestedAt = new Date().toISOString();
-
-  // 2. 교차로 ID를 URL 인코딩하고 실시간 응답이 브라우저 캐시에 남지 않게 요청한다.
+  // 1. 교차로 ID를 URL 인코딩하고 실시간 응답이 브라우저 캐시에 남지 않게 요청한다.
   const response = await fetch(
     `/api/signals/${encodeURIComponent(intersectionId)}`,
     { cache: "no-store" },
   );
+
+  // 2. 응답이 도착한 순간의 브라우저 시각을 카운트다운 기준으로 기록한다.
+  // 화면에 노출하는 값은 T-Data 잔여시간이므로, T-Data 값이 만들어지기 전인 요청 구간은 차감하지 않는다.
+  // 서버 시계로 찍힌 receivedAt을 기기 시계와 비교하면 두 시계 차이만큼 카운트다운이 멈추거나 건너뛰므로 기기 시계로 통일한다.
+  const respondedAt = new Date().toISOString();
+
   // 3. 안전 표시와 카운트다운에 필요한 필드가 모두 있는지 확인한다.
   const payload = await parseApiResponse(response);
 
@@ -224,7 +225,7 @@ export async function fetchPedestrianSignal(
   }
 
   // 4. 화면의 카운트다운과 stale 판단이 모두 같은 기기 시계를 기준으로 동작하도록 수신 시각을 바꾼다.
-  return { ...payload, receivedAt: requestedAt };
+  return { ...payload, receivedAt: respondedAt };
 }
 
 /** 문의 내용을 내부 문의 API로 전송하고 결과 메시지를 반환한다. */
