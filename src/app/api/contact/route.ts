@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { guardApiRequest } from "@/services/security/apiGuard";
 import {
   EmailServiceError,
   sendContactEmail,
@@ -54,9 +55,17 @@ function validateContactRequest(value: unknown): {
 
 /** 검증된 문의를 고정 템플릿 메일로 전송한다. */
 export async function POST(request: Request) {
+  // 1. 출처와 익명 토큰을 확인한다.
+  // 서비스 페이지를 거치지 않고 API만 직접 호출하는 요청을 걸러내기 위함이다.
+  const guardResponse = await guardApiRequest(request);
+
+  if (guardResponse) {
+    return guardResponse;
+  }
+
   let body: unknown;
 
-  // 1. JSON이 아닌 요청은 잘못된 입력으로 즉시 반환한다.
+  // 2. JSON이 아닌 요청은 잘못된 입력으로 즉시 반환한다.
   try {
     body = await request.json();
   } catch {
@@ -66,7 +75,7 @@ export async function POST(request: Request) {
     );
   }
 
-  // 2. 서버 검증을 통과한 문의만 EmailJS로 전송한다.
+  // 3. 서버 검증을 통과한 문의만 EmailJS로 전송한다.
   const { data, errors } = validateContactRequest(body);
 
   if (!data) {
@@ -77,7 +86,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    // 3. 수신 주소가 고정된 EmailJS 템플릿으로 제목과 내용만 전달한다.
+    // 4. 수신 주소가 고정된 EmailJS 템플릿으로 제목과 내용만 전달한다.
     const requestUrl = new URL(request.url);
     const browserOrigin = request.headers.get("origin");
     const origin = browserOrigin === requestUrl.origin

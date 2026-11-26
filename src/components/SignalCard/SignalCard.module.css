@@ -171,6 +171,8 @@
 .errorMessage,
 .staleMessage {
   margin-top: 14px;
+  /* 서버 안내 문구의 줄바꿈(\n)을 그대로 표시한다. */
+  white-space: pre-line;
   padding: 12px;
   border-radius: 12px;
   font-size: 12px;

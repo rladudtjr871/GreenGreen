@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 
+import {
+  SIGNAL_RATE_LIMIT_MAX_REQUESTS,
+  SIGNAL_RATE_LIMIT_WINDOW_MS,
+} from "@/constants/apiAccess";
+import { guardApiRequest } from "@/services/security/apiGuard";
 import { getPedestrianSignal } from "@/services/tData/signal.service";
 import { toTDataErrorResponse } from "@/services/tData/tData.errorResponse";
 
@@ -12,8 +17,22 @@ type SignalRouteContext = {
 };
 
 /** 선택한 교차로의 실시간 보행 신호를 캐시 없이 반환한다. */
-export async function GET(_request: Request, context: SignalRouteContext) {
-  // 1. 경로 ID를 검증해 의도하지 않은 값이 외부 API 파라미터로 전달되지 않게 한다.
+export async function GET(request: Request, context: SignalRouteContext) {
+  // 1. 출처와 익명 토큰을 확인하고 토큰별 호출 횟수를 제한한다.
+  // 이 API는 외부 T-Data 일일 호출 한도를 소모하므로 반복 호출로 한도가 고갈되지 않게 한다.
+  const guardResponse = await guardApiRequest(request, {
+    rateLimit: {
+      scope: "signals",
+      maxRequests: SIGNAL_RATE_LIMIT_MAX_REQUESTS,
+      windowMs: SIGNAL_RATE_LIMIT_WINDOW_MS,
+    },
+  });
+
+  if (guardResponse) {
+    return guardResponse;
+  }
+
+  // 2. 경로 ID를 검증해 의도하지 않은 값이 외부 API 파라미터로 전달되지 않게 한다.
   const { intersectionId } = await context.params;
 
   if (!/^\d{1,10}$/.test(intersectionId)) {
@@ -24,10 +43,10 @@ export async function GET(_request: Request, context: SignalRouteContext) {
   }
 
   try {
-    // 2. 검증된 교차로의 최신 신호를 서버에서 조회한다.
+    // 3. 검증된 교차로의 최신 신호를 서버에서 조회한다.
     const signal = await getPedestrianSignal(intersectionId);
 
-    // 3. 정상 응답이지만 제공 데이터가 없으면 오류와 구분되는 404를 반환한다.
+    // 4. 정상 응답이지만 제공 데이터가 없으면 오류와 구분되는 404를 반환한다.
     if (!signal) {
       return NextResponse.json(
         { message: "현재 제공되는 신호정보가 없습니다." },
@@ -40,7 +59,7 @@ export async function GET(_request: Request, context: SignalRouteContext) {
       headers: { "Cache-Control": "no-store" },
     });
   } catch (error) {
-    // 4. T-Data 오류는 공통 변환기로 사용자용 메시지와 상태 코드만 반환한다.
+    // 5. T-Data 오류는 공통 변환기로 사용자용 메시지와 상태 코드만 반환한다.
     return toTDataErrorResponse(error, {
       logLabel: "Unexpected signal route error.",
       fallbackMessage: "신호정보를 가져오는 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.",

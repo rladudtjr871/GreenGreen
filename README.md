@@ -217,6 +217,10 @@ NEXT_PUBLIC_NAVER_MAP_CLIENT_ID=your_naver_maps_client_id
 # 서울 T-Data Open API 인증키 — 서버에서만 사용
 TDATA_API_KEY=your_tdata_api_key
 
+# 익명 API 접근 토큰 서명 키 — 서버에서만 사용, 32바이트 이상 임의 문자열
+# 예: openssl rand -base64 32 로 생성. 없으면 모든 API가 401을 반환합니다.
+API_ACCESS_TOKEN_SECRET=your_random_secret
+
 # 선택 사항: latest(기본값) 또는 legacy
 TDATA_INTERSECTION_SOURCE=latest
 

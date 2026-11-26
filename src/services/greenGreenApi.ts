@@ -8,6 +8,18 @@ import type {
 } from "@/types/signal";
 import type { ContactRequest } from "@/types/contact";
 
+/** 내부 API가 실패 응답을 반환했을 때 HTTP 상태 코드를 함께 전달하는 오류다. */
+export class ApiResponseError extends Error {
+  constructor(
+    message: string,
+    /** 내부 API가 반환한 HTTP 상태 코드다. */
+    public readonly status: number,
+  ) {
+    super(message);
+    this.name = "ApiResponseError";
+  }
+}
+
 /** 값이 배열이 아닌 일반 객체인지 확인한다. */
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -122,7 +134,7 @@ async function parseApiResponse(response: Response): Promise<unknown> {
       isRecord(payload) && typeof payload.message === "string"
         ? payload.message
         : "요청을 처리하는 중 문제가 발생했습니다.";
-    throw new Error(message);
+    throw new ApiResponseError(message, response.status);
   }
 
   return payload;
