@@ -1,2 +1,7 @@
 allowBuilds:
   unrs-resolver: true
+
+# next → postcss가 사용하는 source-map-js의 DoS 취약점(GHSA, <1.2.2) 패치 버전을 강제한다.
+# postcss의 허용 범위(^1.2.1) 안이므로 호환성에 영향이 없다. next가 패치 버전을 끌어오면 제거한다.
+overrides:
+  source-map-js: ^1.2.2
