@@ -32,7 +32,6 @@ import type {
   MapViewport,
 } from "@/types/map";
 import type { Restroom } from "@/types/restroom";
-import type { PedestrianSignal } from "@/types/signal";
 
 type MapStatus = "loading" | "ready" | "error";
 type LocationStatus = "idle" | "locating" | "error";
@@ -151,29 +150,6 @@ function getRegionCacheKey(coordinate: MapCoordinate): string {
   // 약 100m 단위의 중심 좌표는 같은 지역 판별 결과를 재사용한다.
   // 작은 지도 이동마다 Reverse Geocoding 사용량이 늘어나는 것을 막기 위한 정규화다.
   return `${coordinate.latitude.toFixed(3)},${coordinate.longitude.toFixed(3)}`;
-}
-
-/** 잔여시간이 0초에 도달한 방향을 신호 전환 대기(정보 없음) 상태로 바꾼 지도 표시용 신호를 만든다. */
-function toMarkerSignal(
-  signal: PedestrianSignal,
-  receivedTime: number,
-  now: number,
-): PedestrianSignal {
-  // 1. 수신 이후 경과한 시간만큼 잔여시간이 끝난 방향을 찾는다.
-  // 지도 마커는 매초 다시 그리지 않으므로 호출 시점 기준으로 한 번에 계산한다.
-  const elapsedMilliseconds = Math.max(0, now - receivedTime);
-
-  // 2. 0초가 된 방향은 다음 응답이 올 때까지 unknown 색으로 표시한다.
-  // API 지연 보정 때문에 실제 신호가 이미 바뀌었을 수 있어 보행 가능 강조를 남기지 않는다.
-  return {
-    ...signal,
-    directions: signal.directions.map((direction) =>
-      direction.remainingSeconds !== null &&
-      direction.remainingSeconds * 1_000 <= elapsedMilliseconds
-        ? { ...direction, state: "unknown" }
-        : direction,
-    ),
-  };
 }
 
 /** 지도 초기화, 현재 위치, 레이어 조회, 선택 상태, 신호 조회를 관리한다. */
@@ -623,9 +599,7 @@ export function useTrafficMap() {
     controller.setIntersections(
       visibleIntersections,
       selectedIntersectionId,
-      visibleSignal
-        ? toMarkerSignal(visibleSignal, receivedTime, Date.now())
-        : null,
+      visibleSignal,
       handleSelectIntersection,
     );
     controller.setTrashBins(visibleTrashBins);
@@ -639,33 +613,7 @@ export function useTrafficMap() {
       return;
     }
 
-    // 5. 방향별 잔여시간이 0초가 되는 시점마다 선택 마커를 다시 그린다.
-    // 신호 카드의 "신호 전환 대기" 표시와 지도 횡단보도 막대 색이 어긋나지 않게 하기 위함이다.
-    // stale 시점 이후는 아래 타이머가 막대를 모두 제거하므로 그 전에 끝나는 시점만 예약한다.
-    const staleTime = receivedTime + SIGNAL_STALE_AFTER_MS;
-    const transitionTimes = [
-      ...new Set(
-        visibleSignal.directions
-          .map(({ remainingSeconds }) => remainingSeconds)
-          .filter(
-            (remainingSeconds): remainingSeconds is number =>
-              remainingSeconds !== null && remainingSeconds > 0,
-          )
-          .map((remainingSeconds) => receivedTime + remainingSeconds * 1_000),
-      ),
-    ].filter((time) => time > Date.now() && time < staleTime);
-    const transitionTimers = transitionTimes.map((time) =>
-      window.setTimeout(() => {
-        controller.setIntersections(
-          visibleIntersections,
-          selectedIntersectionId,
-          toMarkerSignal(visibleSignal, receivedTime, Date.now()),
-          handleSelectIntersection,
-        );
-      }, time - Date.now()),
-    );
-
-    // 6. 다음 동기화가 실패해도 수신 시각이 stale 기준을 넘으면 방향 색상을 제거한다.
+    // 5. 다음 동기화가 실패해도 수신 시각이 stale 기준을 넘으면 방향 색상을 제거한다.
     // 오래된 보행 가능 화살표가 지도에 계속 남는 안전 문제를 방지한다.
     const staleTimer = window.setTimeout(() => {
       controller.setIntersections(
@@ -674,12 +622,9 @@ export function useTrafficMap() {
         null,
         handleSelectIntersection,
       );
-    }, Math.max(0, staleTime - Date.now()));
+    }, Math.max(0, receivedTime + SIGNAL_STALE_AFTER_MS - Date.now()));
 
-    return () => {
-      transitionTimers.forEach((timer) => window.clearTimeout(timer));
-      window.clearTimeout(staleTimer);
-    };
+    return () => window.clearTimeout(staleTimer);
   }, [
     activeSelectedIntersection?.intersectionId,
     activeSelectedRestroom?.restroomId,

@@ -21,9 +21,6 @@ const STATE_LABELS: Record<PedestrianSignalState, string> = {
   unknown: "정보 없음",
 };
 
-/** 잔여시간이 0초가 된 뒤 다음 신호 응답을 기다리는 동안 표시하는 문구다. */
-const TRANSITION_WAITING_LABEL = "신호 전환 대기";
-
 /** 초 단위 잔여시간을 분과 초 표시 문자열로 변환한다. */
 function formatRemainingTime(totalSeconds: number): string {
   // 1. 전체 초를 분과 나머지 초로 나눈다.
@@ -195,31 +192,12 @@ export function useSignalCard(
 
       // 3. 오래된 데이터는 방향별 원래 상태와 관계없이 정보 없음으로 바꾼다.
       // 지연된 보행 가능 신호를 현재 신호로 오인하는 상황을 막기 위한 안전 처리다.
-      if (isStale) {
-        return {
-          ...direction,
-          state: "unknown" as const,
-          stateLabel: STATE_LABELS.unknown,
-          remainingLabel: "—",
-        };
-      }
-
-      // 4. 0초에 도달한 방향은 다음 응답이 올 때까지 신호 전환 대기로 표시한다.
-      // API 지연 보정으로 실제 신호는 이미 바뀌었을 수 있어 이전 상태와 보행 가능 강조를 유지하지 않는다.
-      if (remainingSeconds === 0) {
-        return {
-          ...direction,
-          state: "unknown" as const,
-          stateLabel: TRANSITION_WAITING_LABEL,
-          remainingLabel: formatRemainingTime(remainingSeconds),
-        };
-      }
-
       return {
         ...direction,
-        stateLabel: STATE_LABELS[direction.state],
+        state: isStale ? ("unknown" as const) : direction.state,
+        stateLabel: isStale ? STATE_LABELS.unknown : STATE_LABELS[direction.state],
         remainingLabel:
-          remainingSeconds === null
+          isStale || remainingSeconds === null
             ? "—"
             : formatRemainingTime(remainingSeconds),
       };
