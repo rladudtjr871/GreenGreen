@@ -103,7 +103,7 @@ export function useSignalCard(
       return;
     }
 
-    // 2. 0초 표시 후 최초에는 1.5초, 같은 0초 응답이 이어지면 2초 뒤 재확인한다.
+    // 2. 0초 표시 후 최초 확인과 같은 0초 응답이 이어질 때 모두 2초 뒤 재확인한다.
     // 사용자가 0초 상태를 인지할 시간을 주고 API 갱신 전의 같은 응답이 빠르게 반복되는 것도 막는다.
     const receivedTime = new Date(signal.receivedAt).getTime();
     const shortestRemainingSeconds = Math.min(...validRemainingSeconds);
