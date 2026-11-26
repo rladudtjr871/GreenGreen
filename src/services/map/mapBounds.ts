@@ -64,7 +64,7 @@ export function parseMapBoundsQuery(
   if (north - south > maxSpan || east - west > maxSpan) {
     return {
       ok: false,
-      message: "조회 범위가 너무 넓습니다. 지도를 더 확대해 주세요.",
+      message: "잘못된 요청입니다.",
     };
   }
 
