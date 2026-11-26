@@ -41,11 +41,9 @@ export function FaqMenu() {
         aria-expanded={isOpen}
         onClick={toggleMenu}
       >
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <circle cx="12" cy="12" r="9" />
-          <path d="M9.7 9a2.4 2.4 0 1 1 3.4 2.2c-.8.4-1.1.9-1.1 1.8" />
-          <path d="M12 16.5h.01" />
-        </svg>
+        <span className={styles.triggerIcon} aria-hidden="true">
+          ?
+        </span>
       </button>
     </div>
   );

@@ -94,14 +94,18 @@
   transform: translateY(-2px);
 }
 
-.trigger svg {
-  width: 26px;
-  height: 26px;
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.8;
+/* 원 테두리 안에 텍스트 물음표를 두어 직접 그린 SVG 곡선보다 반듯한 모양을 만든다. */
+.triggerIcon {
+  display: grid;
+  box-sizing: border-box;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 1.8px solid currentColor;
+  border-radius: 50%;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
 }
 
 @keyframes menuIn {
