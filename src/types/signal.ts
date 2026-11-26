@@ -36,7 +36,7 @@ export type PedestrianSignal = {
   intersectionId: string;
   /** 신호 장비가 데이터를 관측한 ISO 8601 시각이다. */
   observedAt: string;
-  /** GreenGreen 서버가 외부 응답을 수신한 ISO 8601 시각이다. */
+  /** 잔여시간 카운트다운의 기준 시각이다. 서버는 외부 응답 수신 시각을, 브라우저는 요청 시작 시각(기기 시계)으로 바꿔 사용한다. */
   receivedAt: string;
   /** 관측 시각이 없거나 허용된 최신성 기준을 벗어났는지 나타낸다. */
   isStale: boolean;
